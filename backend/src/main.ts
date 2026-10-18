@@ -2,24 +2,30 @@
 import type { Deps } from './adapters/ports';
 import { gasClock } from './adapters/gas/clock';
 import { createGasLineIdentity } from './adapters/gas/lineIdentity';
+import { gasRandom } from './adapters/gas/random';
 import { createSheetsDataStore } from './adapters/gas/sheetsDataStore';
 import { handleRequestBody } from './app/handle';
+import { bootstrapFirstAdministrator } from './app/staff';
 
-function requireProperty(props: GoogleAppsScript.Properties.Properties, key: string): string {
-  const value = props.getProperty(key);
+function requireProperty(key: string): string {
+  const value = PropertiesService.getScriptProperties().getProperty(key);
   if (!value) throw new Error(`Script Property ${key} is not set`);
   return value;
 }
 
 function buildDeps(): Deps {
-  const props = PropertiesService.getScriptProperties();
   return {
-    data: createSheetsDataStore(requireProperty(props, 'SPREADSHEET_ID')),
+    data: createSheetsDataStore(requireProperty('SPREADSHEET_ID')),
     files: {},
-    lineIdentity: createGasLineIdentity(requireProperty(props, 'LINE_LOGIN_CHANNEL_ID')),
+    // อ่าน channel ID ตอนใช้จริง เพื่อให้ส่วนของเจ้าหน้าที่ใช้ได้ก่อนตั้งค่า LINE
+    lineIdentity: {
+      verifyIdToken: (idToken) =>
+        createGasLineIdentity(requireProperty('LINE_LOGIN_CHANNEL_ID')).verifyIdToken(idToken),
+    },
     slips: {},
     messenger: {},
     clock: gasClock,
+    random: gasRandom,
   };
 }
 
@@ -50,6 +56,25 @@ function isLineWebhook(body: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * รันจาก editor ของ Apps Script ครั้งเดียว เพื่อสร้างผู้ดูแลระบบคนแรก
+ * ตั้ง Script Properties INITIAL_ADMIN_USERNAME, INITIAL_ADMIN_FULL_NAME, INITIAL_ADMIN_PASSWORD ก่อนรัน
+ * เมื่อสร้างสำเร็จ ระบบลบ INITIAL_ADMIN_PASSWORD ออกให้อัตโนมัติ
+ */
+export function createFirstAdministrator(): void {
+  const props = PropertiesService.getScriptProperties();
+  const staff = bootstrapFirstAdministrator(
+    {
+      username: requireProperty('INITIAL_ADMIN_USERNAME'),
+      fullName: requireProperty('INITIAL_ADMIN_FULL_NAME'),
+      password: requireProperty('INITIAL_ADMIN_PASSWORD'),
+    },
+    buildDeps(),
+  );
+  props.deleteProperty('INITIAL_ADMIN_PASSWORD');
+  console.log(`สร้างผู้ดูแลระบบ ${staff.username} แล้ว และลบ INITIAL_ADMIN_PASSWORD ออกแล้ว`);
 }
 
 /** รันจาก editor ของ Apps Script เพื่อตรวจว่าตั้ง Script Properties ครบ (ไม่ log ค่าจริง) */

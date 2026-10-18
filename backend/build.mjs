@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, 'dist');
 
 // ฟังก์ชันที่ต้องเรียกได้จาก Apps Script (web app และปุ่ม Run ใน editor)
-const globals = ['doGet', 'doPost', 'checkScriptProperties'];
+const globals = ['doGet', 'doPost', 'checkScriptProperties', 'createFirstAdministrator'];
 
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });

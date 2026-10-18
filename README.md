@@ -38,6 +38,23 @@ npm run typecheck
 npm run dev:member
 ```
 
+## พัฒนาบนเครื่องด้วยหลังบ้านจำลอง
+
+`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` และ LIFF token ทดลอง `dev-line-token`
+
+1. สร้างไฟล์ `apps/staff/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787`
+2. รันหลังบ้านจำลอง:
+
+   ```bash
+   npm run dev:api
+   ```
+
+3. รันหน้าเว็บเจ้าหน้าที่ในอีกเทอร์มินัล แล้วเปิด http://localhost:5174
+
+   ```bash
+   npm run dev:staff
+   ```
+
 ## ตั้งค่าชุดทดสอบ (ทำครั้งเดียว)
 
 ชุดทดสอบและชุดใช้จริงแยกกันทุกส่วน ขั้นตอนนี้ใช้กับชุดทดสอบ ชุดใช้จริงทำแบบเดียวกันใน ticket 13
@@ -64,7 +81,8 @@ npm run dev:member
    - `SPREADSHEET_ID` = Spreadsheet ID จากข้อ 1
    - `LINE_LOGIN_CHANNEL_ID` = Channel ID ของ LINE Login channel (ข้อ 2 ด้านล่าง)
 8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run (อนุญาตสิทธิ์ครั้งแรก) ดู log ว่าตั้งครบ
-9. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone แล้วจด URL ที่ลงท้ายด้วย `/exec`
+9. สร้างผู้ดูแลระบบคนแรก: ตั้ง Script Properties `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_FULL_NAME`, `INITIAL_ADMIN_PASSWORD` (อย่างน้อย 10 ตัวอักษร) แล้วรันฟังก์ชัน `createFirstAdministrator` ระบบจะลบ `INITIAL_ADMIN_PASSWORD` ออกให้เมื่อสร้างสำเร็จ
+10. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone แล้วจด URL ที่ลงท้ายด้วย `/exec`
 
 **ทุกครั้งที่ push โค้ดใหม่** ให้ Deploy → Manage deployments → แก้ deployment เดิม → Version: New version เพื่อให้ URL เดิมได้โค้ดใหม่ (ถ้าสร้าง deployment ใหม่จะได้ URL ใหม่)
 

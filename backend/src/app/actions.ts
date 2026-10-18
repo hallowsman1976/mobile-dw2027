@@ -1,6 +1,15 @@
 import type { ApiAuth, MeResult, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
 import { requireLineUser } from './auth';
+import {
+  createStaff,
+  listStaff,
+  resetStaffPassword,
+  staffLogin,
+  staffLogout,
+  staffMe,
+  updateStaff,
+} from './staff';
 
 export type ActionHandler = (
   input: { auth?: ApiAuth; payload?: unknown },
@@ -22,4 +31,14 @@ function me(input: { auth?: ApiAuth }, deps: Deps): MeResult {
   return { bound: true, displayName: user.displayName, memberCode: binding.memberCode };
 }
 
-export const actions: Record<string, ActionHandler> = { ping, me };
+export const actions: Record<string, ActionHandler> = {
+  ping,
+  me,
+  staffLogin,
+  staffLogout,
+  staffMe,
+  listStaff,
+  createStaff,
+  updateStaff,
+  resetStaffPassword,
+};

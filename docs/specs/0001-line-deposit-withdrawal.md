@@ -148,16 +148,17 @@ status: ready-for-agent
 
 1. **ทางเข้า (entry)**: `doPost` รับ body ที่เป็น JSON ส่งมาเป็น `text/plain` (เพื่อเลี่ยง CORS preflight) มีรูปแบบ `{ action, auth, payload }` แล้วส่งต่อให้ handler ตามชื่อ action และตอบกลับ `{ ok: true, data }` หรือ `{ ok: false, error: { code, message } }` โดย message เป็นภาษาไทยที่แสดงให้ผู้ใช้ได้เลย
 2. **Action handlers**: กฎทางธุรกิจทั้งหมดอยู่ที่นี่ และเรียกโลกภายนอกผ่าน adapter เท่านั้น
-3. **Adapters**: 6 ตัวตามตาราง แต่ละตัวมีตัวจริง (ใช้ Google หรือ LINE) และตัวปลอมในหน่วยความจำสำหรับทดสอบ
+3. **Adapters**: 7 ตัวตามตาราง แต่ละตัวมีตัวจริง (ใช้ Google หรือ LINE) และตัวปลอมในหน่วยความจำสำหรับทดสอบ
 
 | Adapter | หน้าที่ |
 |---|---|
-| ที่เก็บข้อมูล | อ่านและเขียนตารางใน Sheets ทุกการเขียนที่มีเงื่อนไขทำภายใต้ script lock |
+| ที่เก็บข้อมูล | อ่านและเขียนตารางใน Sheets ทุกการเขียนที่มีเงื่อนไขทำภายใต้ script lock และเก็บ session ของเจ้าหน้าที่ |
 | ที่เก็บไฟล์ | บันทึกและอ่านไฟล์ใน Drive และสร้าง PDF จาก Google Docs ต้นแบบ |
 | ตัวตรวจตัวตน LINE | ตรวจ LIFF ID token กับ LINE verify endpoint แล้วได้ LINE userId |
 | ตัวตรวจสลิป | เรียก SlipOK |
 | ตัวส่งข้อความ | push message ผ่าน Messaging API ไปยังสมาชิก และไปยังกลุ่ม LINE ของเจ้าหน้าที่ |
 | นาฬิกา | เวลาปัจจุบัน (Asia/Bangkok) |
+| ตัวสุ่ม | UUID สำหรับ salt และ session token (`Utilities.getUuid`) |
 
 - ค่าลับ (secret) ได้แก่ channel access token, LIFF channel ID, SlipOK API key, หมายเลขบัญชีรับโอนของสหกรณ์ และรหัสโฟลเดอร์ Drive เก็บใน Script Properties
 - ค่าที่เจ้าหน้าที่ปรับได้ เช่น เวลาตัดรอบ 15:30 เก็บในชีตตั้งค่า
@@ -174,8 +175,11 @@ status: ready-for-agent
 - **PIN**: 6 หลัก เก็บเป็น SHA-256 ผสม salt ของแต่ละคน วนแฮช 10,000 รอบ ใช้ยืนยันเฉพาะตอนยื่นคำขอถอนเงิน ผิด 5 ครั้งให้ล็อกการถอนจนกว่าผู้ดูแลระบบจะรีเซ็ต
 - **เจ้าหน้าที่**:
   - ชื่อผู้ใช้และรหัสผ่านอย่างน้อย 10 ตัวอักษร เก็บแบบเดียวกับ PIN
-  - ล็อกอินได้แล้วรับ session token แบบสุ่ม อายุ 8 ชั่วโมง เก็บใน CacheService และส่งมาใน `auth` ทุกครั้ง
+  - ล็อกอินได้แล้วรับ session token แบบสุ่ม อายุ 8 ชั่วโมง ส่งมาใน `auth` ทุกครั้ง หลังบ้านเก็บเฉพาะแฮชของ token ไว้ใน UserProperties ของบัญชีที่ deploy (CacheService เก็บได้นานสุด 6 ชั่วโมง ไม่พอ) และ session ใช้ไม่ได้ทันทีเมื่อปิดบัญชีหรือรีเซ็ตรหัสผ่าน
   - ผิด 5 ครั้งล็อก 15 นาที
+  - ชื่อผู้ใช้เป็นตัวพิมพ์เล็ก a-z, 0-9, จุด, ขีดกลาง, ขีดล่าง ยาว 3–32 ตัว
+  - ต้องมีผู้ดูแลระบบที่ใช้งานอยู่อย่างน้อย 1 คนเสมอ
+  - ผู้ดูแลระบบคนแรกสร้างด้วยฟังก์ชัน `createFirstAdministrator` จาก editor ของ Apps Script
   - ทุก action ของเจ้าหน้าที่ตรวจบทบาทก่อนทำงาน
 
 ### Actions
@@ -193,7 +197,7 @@ status: ready-for-agent
 - `listMyRequests`: ดูประวัติคำขอ
 
 **เจ้าหน้าที่**
-- `staffLogin`, `staffLogout`
+- `staffLogin`, `staffLogout`, `staffMe`
 - `listRequests`, `getRequest`: ดูคำขอ
 - `viewDocument`: ส่งไฟล์กลับเป็น base64 หลังตรวจสิทธิ์ และบันทึก audit log ทุกครั้ง
 - `reviewRequest`: ผู้ตรวจผ่านหรือปฏิเสธ
@@ -202,7 +206,7 @@ status: ready-for-agent
 - `reviewPayoutAccount`: ตรวจบัญชีรับเงิน
 - `exportApproved`: export รายการที่อนุมัติแล้ว
 - `importAccounts`: นำเข้าข้อมูลจากระบบหลัก
-- `manageStaff`, `resetPin`, `unbindLineAccount`, `manageHolidays`, `listAuditLog`: งานของผู้ดูแลระบบ
+- `listStaff`, `createStaff`, `updateStaff`, `resetStaffPassword`, `resetPin`, `unbindLineAccount`, `manageHolidays`, `listAuditLog`: งานของผู้ดูแลระบบ
 
 **Webhook**: `doPost` ที่ไม่มี action ถือว่าเป็น webhook ของ LINE จัดการเฉพาะ event `join` เพื่อบันทึก groupId ไว้ให้ผู้ดูแลระบบเลือกเป็นกลุ่มของเจ้าหน้าที่ และไม่สนใจ event อื่นทั้งหมด (Apps Script ตรวจ X-Line-Signature ไม่ได้ ตาม ADR 0002)
 
@@ -292,7 +296,7 @@ status: ready-for-agent
 ## Testing Decisions
 
 - **จุดทดสอบเดียว**: ตัวรับคำสั่ง (action handler) ของหลังบ้าน ทดสอบบน Node ด้วย Vitest ส่ง `{ action, auth, payload }` เข้าไปแล้วตรวจผลลัพธ์ สถานะในที่เก็บข้อมูลปลอม และข้อความที่ตัวส่งข้อความปลอมได้รับ
-- adapter ทั้ง 6 ใช้ตัวปลอมในหน่วยความจำ ตัวตรวจตัวตน LINE ปลอมจับคู่ token กับ userId ส่วนนาฬิกาปลอมตั้งเวลาได้ เพื่อทดสอบเรื่องวันทำการ
+- adapter ทั้ง 7 ใช้ตัวปลอมในหน่วยความจำ ตัวตรวจตัวตน LINE ปลอมจับคู่ token กับ userId ส่วนนาฬิกาปลอมตั้งเวลาได้ เพื่อทดสอบเรื่องวันทำการ
 - ทดสอบเฉพาะพฤติกรรมที่มองเห็นจากภายนอก ไม่ทดสอบฟังก์ชันภายในหรือโครงสร้างแถวใน Sheets
 - กรณีที่ต้องมี:
   - เติม 0 ให้รหัสสมาชิก และปฏิเสธรหัสที่เกิน 5 หลัก

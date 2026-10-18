@@ -1,4 +1,4 @@
-﻿import type { ApiAuth, ApiResponse } from '../../shared/api';
+import type { ApiAuth, ApiResponse } from '../../shared/api';
 
 /**
  * เรียกหลังบ้าน Apps Script ด้วย POST แบบ text/plain
