@@ -470,3 +470,9 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   purgeDocuments: 'ลบเอกสารที่ครบระยะเวลาเก็บ',
   purgeDocumentsFailed: 'ลบเอกสารที่ครบระยะเวลาเก็บไม่สำเร็จ',
 };
+
+// ---------- ความพร้อมก่อนเปิดใช้ ----------
+
+export type ReadinessLevel = 'ok' | 'warn' | 'fail';
+
+export type ReadinessItem = { item: string; level: ReadinessLevel; detail: string };

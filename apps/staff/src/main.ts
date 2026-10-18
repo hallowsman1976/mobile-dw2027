@@ -10,6 +10,7 @@ import { importAccountsSection } from './importAccounts';
 import { memberSupportSection } from './memberSupport';
 import { notificationSettingsSection } from './notificationSettings';
 import { payoutReviewSection } from './payoutReview';
+import { readinessSection } from './readiness';
 import { requestsSection } from './requests';
 import { gasUrl, notice, session, staffCall } from './session';
 import { roleNames, staffManagementSection } from './staffManagement';
@@ -110,6 +111,7 @@ function renderHome(): void {
       templateSettingsSection(),
       staffManagementSection(),
       auditLogSection(),
+      readinessSection(),
     );
   }
 

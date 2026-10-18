@@ -9,6 +9,7 @@ import { createSheetsDataStore } from './adapters/gas/sheetsDataStore';
 import { createSlipOkVerifier } from './adapters/gas/slipOk';
 import { handleRequestBody } from './app/handle';
 import { handleLineWebhook, isLineWebhookBody } from './app/lineGroups';
+import { readinessItems } from './app/readiness';
 import { purgeExpiredDocuments } from './app/retention';
 import { bootstrapFirstAdministrator } from './app/staff';
 
@@ -82,12 +83,27 @@ export function createFirstAdministrator(): void {
   console.log(`สร้างผู้ดูแลระบบ ${staff.username} แล้ว และลบ INITIAL_ADMIN_PASSWORD ออกแล้ว`);
 }
 
-/** รันจาก editor ของ Apps Script เพื่อตรวจว่าตั้ง Script Properties ครบ (ไม่ log ค่าจริง) */
+/**
+ * รันจาก editor ของ Apps Script เพื่อตรวจว่าตั้ง Script Properties ครบ (ไม่ log ค่าจริง)
+ * และเมื่อตั้ง SPREADSHEET_ID แล้ว ตรวจ trigger และเช็กลิสต์ความพร้อมก่อนเปิดใช้ด้วย
+ */
 export function checkScriptProperties(): void {
   const props = PropertiesService.getScriptProperties();
-  for (const key of ['SPREADSHEET_ID', 'LINE_LOGIN_CHANNEL_ID', 'LINE_CHANNEL_ACCESS_TOKEN']) {
+  const required = ['SPREADSHEET_ID', 'LINE_LOGIN_CHANNEL_ID', 'LINE_CHANNEL_ACCESS_TOKEN'];
+  for (const key of [...required, 'SLIPOK_API_KEY', 'SLIPOK_BRANCH_ID']) {
     const value = props.getProperty(key) ?? '';
     console.log(`${key}: ${value ? `ตั้งแล้ว (${value.length} ตัวอักษร)` : 'ยังไม่ได้ตั้ง'}`);
+  }
+  if (props.getProperty('INITIAL_ADMIN_PASSWORD')) {
+    console.log('INITIAL_ADMIN_PASSWORD ยังอยู่: รัน createFirstAdministrator หรือลบออก');
+  }
+  if (!props.getProperty('SPREADSHEET_ID')) return;
+
+  const hasTrigger = ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === RETENTION_HANDLER);
+  console.log(`trigger ลบเอกสารที่ครบระยะเวลาเก็บ: ${hasTrigger ? 'ตั้งแล้ว' : 'ยังไม่ได้ตั้ง (รัน installDocumentRetentionTrigger)'}`);
+  const marks = { ok: 'ผ่าน', warn: 'ควรแก้', fail: 'ต้องแก้' };
+  for (const item of readinessItems(buildDeps())) {
+    console.log(`[${marks[item.level]}] ${item.item}: ${item.detail}`);
   }
 }
 

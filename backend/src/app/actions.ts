@@ -16,6 +16,7 @@ import {
   reviewPayoutAccount,
 } from './payoutAccounts';
 import { changePin } from './pin';
+import { systemReadiness } from './readiness';
 import { checkSlip } from './slips';
 import { regenerateWithdrawalPdf, withdrawalTemplate } from './withdrawalPdf';
 import { approveRequest, submitWithdrawalRequest } from './withdrawals';
@@ -93,4 +94,5 @@ export const actions: Record<string, ActionHandler> = {
   addHoliday,
   removeHoliday,
   listAuditLog,
+  systemReadiness,
 };

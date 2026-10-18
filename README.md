@@ -6,6 +6,8 @@
 - คำศัพท์: [GLOSSARY.md](GLOSSARY.md)
 - เหตุผลการตัดสินใจ: [docs/adr/](docs/adr/)
 - งานที่ต้องทำ: [.scratch/line-deposit-withdrawal/issues/](.scratch/line-deposit-withdrawal/issues/)
+- เตรียมระบบใช้จริง เช็กลิสต์ก่อนเปิดใช้ และการโอนความเป็นเจ้าของ: [docs/guides/production.md](docs/guides/production.md)
+- คู่มือ: [เจ้าหน้าที่](docs/guides/staff-manual.md), [สมาชิก](docs/guides/member-manual.md)
 
 ## โครงสร้าง
 
@@ -61,7 +63,7 @@ npm run dev:member
 
 ## ตั้งค่าชุดทดสอบ (ทำครั้งเดียว)
 
-ชุดทดสอบและชุดใช้จริงแยกกันทุกส่วน ขั้นตอนนี้ใช้กับชุดทดสอบ ชุดใช้จริงทำแบบเดียวกันใน ticket 13
+ชุดทดสอบและชุดใช้จริงแยกกันทุกส่วน ขั้นตอนนี้ใช้กับชุดทดสอบ ชุดใช้จริงทำแบบเดียวกันโดยเปลี่ยนค่าตาม [docs/guides/production.md](docs/guides/production.md)
 
 ### 1. Google Sheets และ Apps Script
 
