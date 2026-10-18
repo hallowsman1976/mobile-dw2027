@@ -4,6 +4,7 @@ import type { StaffLoginResult, StaffProfile } from '../../../shared/api';
 import { callApi } from '../../lib/apiClient';
 import { h } from '../../lib/dom';
 import { importAccountsSection } from './importAccounts';
+import { memberSupportSection } from './memberSupport';
 import { gasUrl, notice, session, staffCall } from './session';
 import { roleNames, staffManagementSection } from './staffManagement';
 
@@ -98,7 +99,7 @@ function renderHome(): void {
     ),
   ];
   if (me.roles.includes('systemAdministrator')) {
-    sections.push(importAccountsSection(), staffManagementSection());
+    sections.push(memberSupportSection(), importAccountsSection(), staffManagementSection());
   }
 
   app.replaceChildren(

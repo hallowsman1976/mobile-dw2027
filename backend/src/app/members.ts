@@ -184,7 +184,7 @@ export function validatePin(value: unknown): string {
   return pin;
 }
 
-function memberName(memberCode: string, deps: Deps): string {
+export function memberName(memberCode: string, deps: Deps): string {
   return deps.data.listDepositAccounts().find((a) => a.memberCode === memberCode)?.accountName ?? '';
 }
 

@@ -167,6 +167,42 @@ button.small {
   font-size: 0.85rem;
 }
 
+button.secondary.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.search-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.search-row label {
+  flex: 0 1 220px;
+}
+
+.search-row button {
+  margin-top: 0;
+}
+
+.lookup {
+  margin-top: 16px;
+  max-width: 560px;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-row span:first-child {
+  color: var(--muted);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: default;

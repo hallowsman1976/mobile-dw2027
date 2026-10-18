@@ -58,6 +58,27 @@ export const PIN_LENGTH = 6;
 
 export type SetPinPayload = { pin: string };
 
+export type ChangePinPayload = { oldPin: string; newPin: string };
+
+export const PIN_MAX_FAILED_ATTEMPTS = 5;
+
+// ---------- เจ้าหน้าที่: ดูแลการผูกบัญชีของสมาชิก ----------
+
+export type MemberCodePayload = { memberCode: string };
+
+export type MemberLookup = {
+  memberCode: string;
+  memberName: string;
+  accountCount: number;
+  binding: null | {
+    boundAt: string;
+    consentVersion: string;
+    pinSet: boolean;
+    pinLocked: boolean;
+    pinFailedAttempts: number;
+  };
+};
+
 export type MyAccount = {
   accountNumber: string;
   accountName: string;

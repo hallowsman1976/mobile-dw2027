@@ -1,7 +1,9 @@
 import type { ApiAuth, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
 import { depositAccountImportStatus, importAccounts } from './depositAccounts';
+import { lookupMember, resetPin, unbindLineAccount } from './memberAdmin';
 import { bindLineAccount, listMyAccounts, me, setPin } from './members';
+import { changePin } from './pin';
 import {
   createStaff,
   listStaff,
@@ -28,6 +30,7 @@ export const actions: Record<string, ActionHandler> = {
   me,
   bindLineAccount,
   setPin,
+  changePin,
   listMyAccounts,
   // เจ้าหน้าที่
   staffLogin,
@@ -39,4 +42,7 @@ export const actions: Record<string, ActionHandler> = {
   resetStaffPassword,
   importAccounts,
   depositAccountImportStatus,
+  lookupMember,
+  resetPin,
+  unbindLineAccount,
 };

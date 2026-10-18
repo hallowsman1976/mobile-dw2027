@@ -1,5 +1,5 @@
 // หน้าของสมาชิกที่ผูกบัญชีแล้ว
-import { ACCOUNT_TYPE_LABELS, type MeResult, type MyAccount } from '../../../shared/api';
+import { ACCOUNT_TYPE_LABELS, PIN_LENGTH, type MeResult, type MyAccount } from '../../../shared/api';
 import { h } from '../../lib/dom';
 import { memberCall } from './api';
 import { MENU, notice, renderPage, type PageId } from './layout';
@@ -45,7 +45,9 @@ export async function renderAccount(member: Member): Promise<void> {
       'section',
       { class: 'card' },
       h('h2', {}, 'เปลี่ยน PIN'),
-      h('p', { class: 'hint' }, 'เร็ว ๆ นี้'),
+      member.pinLocked
+        ? h('p', { class: 'hint' }, 'PIN ถูกล็อก กรุณาติดต่อสหกรณ์เพื่อรีเซ็ต แล้วเปิดหน้านี้ใหม่เพื่อตั้ง PIN ใหม่')
+        : changePinForm(),
     ),
   );
 
@@ -88,6 +90,52 @@ export function renderContact(): void {
 export function renderComingSoon(page: PageId): void {
   const label = MENU.find((item) => item.id === page)?.label ?? 'เมนูนี้';
   renderPage(label, h('section', { class: 'card' }, h('p', {}, `${label} จะเปิดให้ใช้เร็ว ๆ นี้`)));
+}
+
+function changePinForm(): HTMLElement {
+  const pinInput = (autocomplete: string) =>
+    h('input', {
+      type: 'password',
+      inputmode: 'numeric',
+      autocomplete,
+      maxlength: String(PIN_LENGTH),
+      required: true,
+    });
+  const oldPin = pinInput('current-password');
+  const newPin = pinInput('new-password');
+  const confirm = pinInput('new-password');
+  const submit = h('button', { type: 'submit' }, 'เปลี่ยน PIN');
+  const messages = h('div');
+
+  const form = h(
+    'form',
+    {
+      class: 'stack',
+      onSubmit: async (event) => {
+        event.preventDefault();
+        if (newPin.value !== confirm.value) {
+          messages.replaceChildren(notice('PIN ใหม่ทั้งสองช่องไม่ตรงกัน', true));
+          return;
+        }
+        submit.disabled = true;
+        const res = await memberCall('changePin', { oldPin: oldPin.value, newPin: newPin.value });
+        submit.disabled = false;
+        if (!res.ok) {
+          messages.replaceChildren(notice(res.error.message, true));
+          if (res.error.code === 'ACCOUNT_LOCKED') form.replaceChildren(messages);
+          return;
+        }
+        form.reset();
+        messages.replaceChildren(notice('เปลี่ยน PIN เรียบร้อยแล้ว'));
+      },
+    },
+    messages,
+    h('label', {}, 'PIN เดิม', oldPin),
+    h('label', {}, `PIN ใหม่ ${PIN_LENGTH} หลัก`, newPin),
+    h('label', {}, 'ยืนยัน PIN ใหม่', confirm),
+    submit,
+  );
+  return form;
 }
 
 function statusRow(label: string, value: string): HTMLElement {
