@@ -1,0 +1,34 @@
+{
+  "name": "mdh-coop-line-deposit-withdrawal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ระบบยื่นคำขอฝากถอนเงินผ่าน LINE ของสหกรณ์ออมทรัพย์สาธารณสุขจังหวัดมุกดาหาร จำกัด",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p backend && tsc -p apps",
+    "build:backend": "node backend/build.mjs",
+    "build:member": "vite build apps/member",
+    "build:staff": "vite build apps/staff",
+    "build:member:test": "vite build apps/member --mode test",
+    "build:staff:test": "vite build apps/staff --mode test",
+    "build": "npm run build:backend && npm run build:member && npm run build:staff",
+    "dev:member": "vite apps/member --mode test",
+    "dev:staff": "vite apps/staff --mode test",
+    "push:test": "npm run build:backend && clasp -P backend/.clasp.test.json push -f",
+    "push:prod": "npm run build:backend && clasp -P backend/.clasp.prod.json push -f",
+    "pages:test": "npm run build:member:test && npm run build:staff:test && npx wrangler pages deploy apps/member/dist --project-name mdh-coop-member-test && npx wrangler pages deploy apps/staff/dist --project-name mdh-coop-staff-test",
+    "pages:prod": "npm run build:member && npm run build:staff && npx wrangler pages deploy apps/member/dist --project-name mdh-coop-member && npx wrangler pages deploy apps/staff/dist --project-name mdh-coop-staff"
+  },
+  "devDependencies": {
+    "@types/google-apps-script": "^2.0.13",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@line/liff": "^2.31.2"
+  }
+}
