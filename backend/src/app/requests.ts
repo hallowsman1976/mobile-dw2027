@@ -115,6 +115,7 @@ export function listRequests(input: { auth?: ApiAuth; payload?: unknown }, deps:
     .filter((r) => !filter.status || r.status === filter.status)
     .filter((r) => !filter.type || r.type === filter.type)
     .filter((r) => !filter.processingDate || r.processingDate === filter.processingDate)
+    .filter((r) => !filter.processingDateTo || r.processingDate <= filter.processingDateTo)
     .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt))
     .map((r) => toStaff(r, deps));
 }

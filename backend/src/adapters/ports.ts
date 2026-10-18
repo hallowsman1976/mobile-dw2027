@@ -203,7 +203,12 @@ export interface FileStore {
   saveFile(category: FileCategory, fileName: string, mimeType: string, contentBase64: string): string;
   /** คืน null ถ้าไม่พบไฟล์ */
   readFile(fileId: string): DocumentContent | null;
+
+  /** สร้างไฟล์ .xlsx ชั่วคราวจากตารางหลายแท็บ คืนเนื้อไฟล์ ไม่เก็บไฟล์ไว้ใน Drive */
+  buildSpreadsheet(fileName: string, sheets: SpreadsheetTab[]): DocumentContent;
 }
+
+export type SpreadsheetTab = { name: string; rows: (string | number)[][] };
 
 export type LineUser = { userId: string; displayName: string };
 

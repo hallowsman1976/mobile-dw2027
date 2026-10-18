@@ -3,6 +3,7 @@ import './staff.css';
 import type { StaffLoginResult, StaffProfile } from '../../../shared/api';
 import { callApi } from '../../lib/apiClient';
 import { h } from '../../lib/dom';
+import { dailyWorkSection } from './dailyWork';
 import { holidaysSection } from './holidays';
 import { importAccountsSection } from './importAccounts';
 import { memberSupportSection } from './memberSupport';
@@ -94,7 +95,7 @@ function renderHome(): void {
     'ออกจากระบบ',
   );
 
-  const sections: HTMLElement[] = [requestsSection(me)];
+  const sections: HTMLElement[] = [requestsSection(me), dailyWorkSection()];
   if (me.roles.includes('reviewer')) {
     sections.push(payoutReviewSection());
   }

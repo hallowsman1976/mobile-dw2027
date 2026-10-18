@@ -352,9 +352,32 @@ export type ListRequestsPayload = {
   type?: RequestType;
   /** YYYY-MM-DD ตามวันทำการที่จะดำเนินการ */
   processingDate?: string;
+  /** วันทำการไม่เกินวันนี้ (YYYY-MM-DD) */
+  processingDateTo?: string;
 };
 
 export type Holiday = { date: string; name: string };
+
+// ---------- งานประจำวัน: export และปิดคำขอ ----------
+
+/** คำขอที่อนุมัติแล้วซึ่งวันทำการไม่เกินวันที่เลือก (รวมรายการค้างจากวันก่อน) */
+export type ExportApprovedPayload = { processingDate: string };
+
+export type ExportApprovedResult = DocumentContent & {
+  depositCount: number;
+  depositTotal: number;
+  withdrawalCount: number;
+  withdrawalTotal: number;
+};
+
+export type CompleteRequestsPayload = { ids: string[] };
+
+export type CompleteRequestsResult = {
+  id: string;
+  requestNumber: string;
+  ok: boolean;
+  message: string;
+}[];
 
 // ---------- กลุ่ม LINE ของเจ้าหน้าที่ ----------
 

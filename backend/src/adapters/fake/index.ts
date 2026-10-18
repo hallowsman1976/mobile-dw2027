@@ -161,6 +161,11 @@ export function createFakeWorld(): FakeWorld {
         files.set(fileId, { category, fileName, mimeType, contentBase64 });
         return fileId;
       },
+      buildSpreadsheet: (fileName, sheets) => ({
+        fileName,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        contentBase64: Buffer.from(JSON.stringify(sheets), 'utf8').toString('base64'),
+      }),
       readFile: (fileId) => {
         const file = files.get(fileId);
         return file ? { fileName: file.fileName, mimeType: file.mimeType, contentBase64: file.contentBase64 } : null;

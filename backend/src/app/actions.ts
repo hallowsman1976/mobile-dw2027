@@ -1,5 +1,6 @@
 import type { ApiAuth, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
+import { completeRequests, exportApproved } from './dailyWork';
 import { depositAccountImportStatus, importAccounts } from './depositAccounts';
 import { viewDocument } from './documents';
 import { addHoliday, listHolidays, removeHoliday } from './holidays';
@@ -80,6 +81,8 @@ export const actions: Record<string, ActionHandler> = {
   getRequest,
   reviewRequest,
   approveRequest,
+  exportApproved,
+  completeRequests,
   listHolidays,
   addHoliday,
   removeHoliday,

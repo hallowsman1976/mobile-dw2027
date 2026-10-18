@@ -40,7 +40,7 @@ npm run dev:member
 
 ## พัฒนาบนเครื่องด้วยหลังบ้านจำลอง
 
-`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` (มีทุกบทบาท) และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive) ข้อความ LINE ไม่ได้ส่งจริง แต่พิมพ์ออกในหน้าต่างของ `npm run dev:api` และมีกลุ่ม LINE ทดลองให้เลือก
+`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` (มีทุกบทบาท) และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive) ข้อความ LINE ไม่ได้ส่งจริง แต่พิมพ์ออกในหน้าต่างของ `npm run dev:api` ไฟล์ export งานประจำวันเป็น .csv แทน .xlsx และมีกลุ่ม LINE ทดลองให้เลือก
 
 1. สร้างไฟล์ `apps/staff/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` และ `apps/member/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` กับ `VITE_DEV_ID_TOKEN=dev-line-token` (หน้าสมาชิกจะข้าม LIFF และใช้ token ทดลองแทน เฉพาะตอน `npm run dev:member`) สมาชิกทดลองผูกบัญชีด้วยรหัสสมาชิก `123` และเลขบัตร `1101700230708`
 2. รันหลังบ้านจำลอง:

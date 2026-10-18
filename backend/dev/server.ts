@@ -40,6 +40,18 @@ world.staff.get('admin')!.roles = ['reviewer', 'approver', 'systemAdministrator'
 const devGroupId = `C${'0'.repeat(32)}`;
 world.lineGroups.push({ groupId: devGroupId, groupName: 'เจ้าหน้าที่สหกรณ์ (ทดลอง)', joinedAt: new Date().toISOString() });
 world.deps.messenger.pushText = (to, text) => console.log(`[LINE → ${to}]\n${text}\n`);
+// หลังบ้านจริงสร้าง .xlsx ผ่าน Google Sheets ส่วนตัวจำลองสร้าง .csv ที่รวมทุกแท็บแทน
+world.deps.files.buildSpreadsheet = (fileName, sheets) => {
+  const csv = sheets
+    .flatMap((sheet) => [[`# ${sheet.name}`], ...sheet.rows, []])
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+  return {
+    fileName: fileName.replace(/\.xlsx$/, '.csv'),
+    mimeType: 'text/csv',
+    contentBase64: Buffer.from(String.fromCharCode(0xfeff) + csv, 'utf8').toString('base64'),
+  };
+};
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];

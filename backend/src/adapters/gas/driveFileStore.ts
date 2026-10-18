@@ -1,5 +1,5 @@
 import type { DocumentContent } from '../../../../shared/api';
-import type { FileCategory, FileStore } from '../ports';
+import type { FileCategory, FileStore, SpreadsheetTab } from '../ports';
 
 const SOURCE_MIME_TYPES: Record<string, string> = {
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -71,6 +71,37 @@ export function createDriveFileStore(): FileStore {
       return created.id;
     },
 
+    buildSpreadsheet(fileName: string, tabs: SpreadsheetTab[]): DocumentContent {
+      const drive = requireDrive();
+      const temp = drive.Files.create({
+        name: `ชั่วคราว ${fileName}`,
+        mimeType: 'application/vnd.google-apps.spreadsheet',
+      });
+      if (!temp.id) throw new Error('Drive did not return a spreadsheet id');
+      try {
+        const book = SpreadsheetApp.openById(temp.id);
+        tabs.forEach((tab, index) => {
+          const sheet = index === 0 ? book.getSheets()[0].setName(tab.name) : book.insertSheet(tab.name);
+          writeTab(sheet, tab);
+        });
+        SpreadsheetApp.flush();
+        const res = UrlFetchApp.fetch(
+          `https://docs.google.com/spreadsheets/d/${encodeURIComponent(temp.id)}/export?format=xlsx`,
+          { headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` }, muteHttpExceptions: true },
+        );
+        if (res.getResponseCode() !== 200) {
+          throw new Error(`Spreadsheet export failed: HTTP ${res.getResponseCode()}`);
+        }
+        return {
+          fileName,
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          contentBase64: Utilities.base64Encode(res.getBlob().getBytes()),
+        };
+      } finally {
+        drive.Files.remove(temp.id);
+      }
+    },
+
     readFile(fileId: string): DocumentContent | null {
       const drive = requireDrive();
       let meta: GoogleAppsScript.Drive_v3.Drive.V3.Schema.File;
@@ -92,6 +123,21 @@ export function createDriveFileStore(): FileStore {
       };
     },
   };
+}
+
+/** เขียนตาราง: คอลัมน์ข้อความตั้งเป็น '@' (เลขที่ขึ้นต้นด้วย 0 ไม่หาย) คอลัมน์ตัวเลขแสดงทศนิยม 2 ตำแหน่ง */
+function writeTab(sheet: GoogleAppsScript.Spreadsheet.Sheet, tab: SpreadsheetTab): void {
+  const width = Math.max(...tab.rows.map((row) => row.length));
+  if (width === 0 || tab.rows.length === 0) return;
+  const rows = tab.rows.map((row) => [...row, ...new Array(width - row.length).fill('')]);
+  for (let column = 0; column < width; column++) {
+    const numeric = rows.slice(1).some((row) => typeof row[column] === 'number');
+    sheet.getRange(1, column + 1, rows.length, 1).setNumberFormat(numeric ? '#,##0.00' : '@');
+  }
+  sheet.getRange(1, 1, rows.length, width).setValues(rows);
+  sheet.getRange(1, 1, 1, width).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  sheet.autoResizeColumns(1, width);
 }
 
 function requireDrive(): GoogleAppsScript.Drive {
