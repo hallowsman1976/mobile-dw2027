@@ -1,6 +1,7 @@
 // ทางเข้าของ Apps Script web app — build.mjs สร้าง doGet/doPost แบบ global ที่เรียกฟังก์ชันในไฟล์นี้
 import type { Deps } from './adapters/ports';
 import { gasClock } from './adapters/gas/clock';
+import { createDriveFileStore } from './adapters/gas/driveFileStore';
 import { createGasLineIdentity } from './adapters/gas/lineIdentity';
 import { gasRandom } from './adapters/gas/random';
 import { createSheetsDataStore } from './adapters/gas/sheetsDataStore';
@@ -16,7 +17,7 @@ function requireProperty(key: string): string {
 function buildDeps(): Deps {
   return {
     data: createSheetsDataStore(requireProperty('SPREADSHEET_ID')),
-    files: {},
+    files: createDriveFileStore(),
     // อ่าน channel ID ตอนใช้จริง เพื่อให้ส่วนของเจ้าหน้าที่ใช้ได้ก่อนตั้งค่า LINE
     lineIdentity: {
       verifyIdToken: (idToken) =>

@@ -1,7 +1,7 @@
 // ตัวกลาง (adapter) ที่ action handler ใช้ติดต่อโลกภายนอก
 // แต่ละตัวมีตัวจริงใน ./gas และตัวปลอมใน ./fake สำหรับทดสอบ
 // ticket ถัด ๆ ไปจะเพิ่มเมธอดตามที่ต้องใช้
-import type { StaffRole } from '../../../shared/api';
+import type { AccountType, StaffRole } from '../../../shared/api';
 
 export type LineBinding = {
   memberCode: string;
@@ -31,12 +31,40 @@ export type StaffSession = {
   expiresAt: string;
 };
 
+/** หนึ่งแถวของบัญชีเงินฝากที่นำเข้าจากระบบหลัก */
+export type DepositAccount = {
+  seq: string;
+  accountNumber: string;
+  memberCode: string;
+  nationalId: string;
+  accountName: string;
+  accountType: AccountType;
+  /** วันที่ติดต่อล่าสุดตามที่ระบบหลักแสดง (ข้อความ) */
+  lastContactDate: string;
+  importedAt: string;
+};
+
+export type AuditEntry = {
+  at: string;
+  /** username ของเจ้าหน้าที่ หรือ member:<รหัสสมาชิก> */
+  actor: string;
+  action: string;
+  target: string;
+  detail: string;
+};
+
 /** ที่เก็บข้อมูล (Google Sheets และ PropertiesService สำหรับ session) */
 export interface DataStore {
   /** ทำงานภายใต้ script lock ทุกการอ่าน-ตรวจ-เขียนที่ต้องไม่ชนกันต้องอยู่ในนี้ */
   withLock<T>(fn: () => T): T;
 
   findActiveBindingByLineUserId(lineUserId: string): LineBinding | null;
+
+  listDepositAccounts(): DepositAccount[];
+  /** แทนที่บัญชีเงินฝากทั้งตาราง (ผู้เรียกต้องถือ lock) */
+  replaceDepositAccounts(accounts: DepositAccount[]): void;
+
+  appendAuditLog(entry: AuditEntry): void;
 
   listStaff(): StaffAccount[];
   findStaff(username: string): StaffAccount | null;
@@ -49,8 +77,14 @@ export interface DataStore {
   deleteSession(tokenHash: string): void;
 }
 
-/** ที่เก็บไฟล์ (Google Drive) — ใช้ตั้งแต่ ticket 06 */
-export interface FileStore {}
+/** ที่เก็บไฟล์ (Google Drive) */
+export interface FileStore {
+  /**
+   * อ่านแผ่นแรกของไฟล์ตาราง (.xlsx, .xls, .csv) เป็นข้อความตามที่แสดงในโปรแกรม
+   * เพื่อให้เลขที่ขึ้นต้นด้วย 0 ไม่หาย คืน null ถ้าอ่านไฟล์ไม่ได้
+   */
+  readSpreadsheetRows(fileName: string, contentBase64: string): string[][] | null;
+}
 
 export type LineUser = { userId: string; displayName: string };
 

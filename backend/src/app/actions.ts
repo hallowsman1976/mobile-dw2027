@@ -1,6 +1,7 @@
 import type { ApiAuth, MeResult, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
 import { requireLineUser } from './auth';
+import { depositAccountImportStatus, importAccounts } from './depositAccounts';
 import {
   createStaff,
   listStaff,
@@ -41,4 +42,6 @@ export const actions: Record<string, ActionHandler> = {
   createStaff,
   updateStaff,
   resetStaffPassword,
+  importAccounts,
+  depositAccountImportStatus,
 };

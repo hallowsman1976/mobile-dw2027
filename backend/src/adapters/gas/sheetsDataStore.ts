@@ -1,9 +1,31 @@
-import { STAFF_ROLES, type StaffRole } from '../../../../shared/api';
-import type { DataStore, LineBinding, StaffAccount, StaffSession } from '../ports';
+import { STAFF_ROLES, type AccountType, type StaffRole } from '../../../../shared/api';
+import type {
+  AuditEntry,
+  DataStore,
+  DepositAccount,
+  LineBinding,
+  StaffAccount,
+  StaffSession,
+} from '../ports';
 import { SheetTable, type Row } from './sheetTable';
 
 export const SHEET_LINE_BINDINGS = 'การผูกบัญชีLINE';
 export const SHEET_STAFF = 'เจ้าหน้าที่';
+export const SHEET_DEPOSIT_ACCOUNTS = 'บัญชีเงินฝาก';
+export const SHEET_AUDIT_LOG = 'บันทึกการใช้งาน';
+
+const DEPOSIT_ACCOUNT_COLUMNS = [
+  'seq',
+  'accountNumber',
+  'memberCode',
+  'nationalId',
+  'accountName',
+  'accountType',
+  'lastContactDate',
+  'importedAt',
+] as const;
+
+const AUDIT_COLUMNS = ['at', 'actor', 'action', 'target', 'detail'] as const;
 
 const STAFF_COLUMNS = [
   'username',
@@ -34,6 +56,8 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
     'unboundAt',
   ]);
   const staffTable = new SheetTable(book, SHEET_STAFF, STAFF_COLUMNS);
+  const depositAccounts = new SheetTable(book, SHEET_DEPOSIT_ACCOUNTS, DEPOSIT_ACCOUNT_COLUMNS);
+  const auditLog = new SheetTable(book, SHEET_AUDIT_LOG, AUDIT_COLUMNS);
   const sessions = () => PropertiesService.getUserProperties();
   let lockDepth = 0;
 
@@ -64,6 +88,17 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
     findActiveBindingByLineUserId(lineUserId: string): LineBinding | null {
       const row = bindings.readAll().find((r) => r.lineUserId === lineUserId && !r.unboundAt);
       return row ? { memberCode: row.memberCode, lineUserId } : null;
+    },
+
+    listDepositAccounts: () =>
+      depositAccounts.readAll().map((row) => ({ ...(row as Record<keyof DepositAccount, string>), accountType: row.accountType as AccountType })),
+
+    replaceDepositAccounts(accounts: DepositAccount[]): void {
+      depositAccounts.replaceAll(accounts.map((account) => ({ ...account })));
+    },
+
+    appendAuditLog(entry: AuditEntry): void {
+      auditLog.append({ ...entry });
     },
 
     listStaff: () => staffTable.readAll().map(rowToStaff),

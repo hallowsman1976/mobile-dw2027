@@ -40,7 +40,7 @@ npm run dev:member
 
 ## พัฒนาบนเครื่องด้วยหลังบ้านจำลอง
 
-`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` และ LIFF token ทดลอง `dev-line-token`
+`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive)
 
 1. สร้างไฟล์ `apps/staff/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787`
 2. รันหลังบ้านจำลอง:
@@ -80,7 +80,7 @@ npm run dev:member
 7. ใน Apps Script editor → Project Settings → Script Properties ตั้งค่า
    - `SPREADSHEET_ID` = Spreadsheet ID จากข้อ 1
    - `LINE_LOGIN_CHANNEL_ID` = Channel ID ของ LINE Login channel (ข้อ 2 ด้านล่าง)
-8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run (อนุญาตสิทธิ์ครั้งแรก) ดู log ว่าตั้งครบ
+8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run ดู log ว่าตั้งครบ ครั้งแรกระบบจะขออนุญาตสิทธิ์ Sheets, Drive (เฉพาะไฟล์ที่ระบบสร้าง) และการเรียกเว็บภายนอก ถ้าภายหลังเพิ่มสิทธิ์ใหม่ใน `appsscript.json` ต้องรันฟังก์ชันใดก็ได้ใน editor เพื่ออนุญาตอีกครั้ง
 9. สร้างผู้ดูแลระบบคนแรก: ตั้ง Script Properties `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_FULL_NAME`, `INITIAL_ADMIN_PASSWORD` (อย่างน้อย 10 ตัวอักษร) แล้วรันฟังก์ชัน `createFirstAdministrator` ระบบจะลบ `INITIAL_ADMIN_PASSWORD` ออกให้เมื่อสร้างสำเร็จ
 10. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone แล้วจด URL ที่ลงท้ายด้วย `/exec`
 

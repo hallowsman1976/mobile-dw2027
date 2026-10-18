@@ -40,6 +40,29 @@ export class SheetTable {
     sheet.getRange(lastRow + 1, 1, 1, this.columns.length).setValues(values);
   }
 
+  append(row: Row): void {
+    const sheet = this.ensureSheet();
+    sheet
+      .getRange(sheet.getLastRow() + 1, 1, 1, this.columns.length)
+      .setValues([this.columns.map((column) => row[column] ?? '')]);
+  }
+
+  /** ลบข้อมูลเดิมทั้งหมดแล้วเขียนใหม่ในครั้งเดียว (ผู้เรียกต้องถือ lock) */
+  replaceAll(rows: Row[]): void {
+    const sheet = this.ensureSheet();
+    const lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).clearContent();
+    }
+    if (rows.length === 0) return;
+    if (sheet.getMaxRows() < rows.length + 1) {
+      sheet.insertRowsAfter(sheet.getMaxRows(), rows.length + 1 - sheet.getMaxRows());
+    }
+    const range = sheet.getRange(2, 1, rows.length, this.columns.length);
+    range.setNumberFormat('@');
+    range.setValues(rows.map((row) => this.columns.map((column) => row[column] ?? '')));
+  }
+
   private ensureSheet(): GoogleAppsScript.Spreadsheet.Sheet {
     const book = this.book();
     const existing = book.getSheetByName(this.name);

@@ -1,5 +1,13 @@
 // ตัวปลอมในหน่วยความจำของตัวกลางทั้งหมด ใช้ในการทดสอบเท่านั้น
-import type { Deps, LineBinding, LineUser, StaffAccount, StaffSession } from '../ports';
+import type {
+  AuditEntry,
+  DepositAccount,
+  Deps,
+  LineBinding,
+  LineUser,
+  StaffAccount,
+  StaffSession,
+} from '../ports';
 
 export type FakeWorld = {
   deps: Deps;
@@ -8,15 +16,27 @@ export type FakeWorld = {
   bindings: LineBinding[];
   staff: Map<string, StaffAccount>;
   sessions: Map<string, StaffSession>;
+  depositAccounts: DepositAccount[];
+  auditLog: AuditEntry[];
   setNow(date: Date): void;
   advanceMinutes(minutes: number): void;
 };
+
+/**
+ * ไฟล์ตารางปลอม: ตัวที่เก็บไฟล์ปลอมถอด base64 เป็น JSON ของ string[][]
+ * ใช้คู่กับ action importAccounts ในการทดสอบ
+ */
+export function fakeSpreadsheetBase64(rows: string[][]): string {
+  return Buffer.from(JSON.stringify(rows), 'utf8').toString('base64');
+}
 
 export function createFakeWorld(): FakeWorld {
   const lineTokens = new Map<string, LineUser>();
   const bindings: LineBinding[] = [];
   const staff = new Map<string, StaffAccount>();
   const sessions = new Map<string, StaffSession>();
+  const depositAccounts: DepositAccount[] = [];
+  const auditLog: AuditEntry[] = [];
   let now = new Date('2026-01-05T09:00:00+07:00');
   let uuidCounter = 0;
 
@@ -25,6 +45,13 @@ export function createFakeWorld(): FakeWorld {
       withLock: (fn) => fn(),
       findActiveBindingByLineUserId: (lineUserId) =>
         bindings.find((b) => b.lineUserId === lineUserId) ?? null,
+      listDepositAccounts: () => depositAccounts.map((a) => ({ ...a })),
+      replaceDepositAccounts: (accounts) => {
+        depositAccounts.splice(0, depositAccounts.length, ...accounts.map((a) => ({ ...a })));
+      },
+      appendAuditLog: (entry) => {
+        auditLog.push({ ...entry });
+      },
       listStaff: () => [...staff.values()].map((s) => ({ ...s, roles: [...s.roles] })),
       findStaff: (username) => {
         const s = staff.get(username);
@@ -41,7 +68,15 @@ export function createFakeWorld(): FakeWorld {
         sessions.delete(tokenHash);
       },
     },
-    files: {},
+    files: {
+      readSpreadsheetRows: (_fileName, contentBase64) => {
+        try {
+          return JSON.parse(Buffer.from(contentBase64, 'base64').toString('utf8')) as string[][];
+        } catch {
+          return null;
+        }
+      },
+    },
     lineIdentity: {
       verifyIdToken: (idToken) => lineTokens.get(idToken) ?? null,
     },
@@ -59,6 +94,8 @@ export function createFakeWorld(): FakeWorld {
     bindings,
     staff,
     sessions,
+    depositAccounts,
+    auditLog,
     setNow: (date) => {
       now = date;
     },
