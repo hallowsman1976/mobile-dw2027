@@ -288,6 +288,7 @@ export function emptyRequest(): MemberRequest {
     pdfFileId: '',
     submittedAt: '',
     processingDate: '',
+    filesPurgedAt: '',
   };
 }
 

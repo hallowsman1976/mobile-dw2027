@@ -1,5 +1,6 @@
 import type { ApiAuth, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
+import { listAuditLog } from './auditLog';
 import { completeRequests, exportApproved } from './dailyWork';
 import { depositAccountImportStatus, importAccounts } from './depositAccounts';
 import { viewDocument } from './documents';
@@ -91,4 +92,5 @@ export const actions: Record<string, ActionHandler> = {
   listHolidays,
   addHoliday,
   removeHoliday,
+  listAuditLog,
 };

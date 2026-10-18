@@ -374,3 +374,18 @@ button:disabled {
   opacity: 0.5;
   cursor: default;
 }
+
+.filters button {
+  align-self: flex-end;
+  margin-top: 0;
+}
+
+td.nowrap {
+  white-space: nowrap;
+}
+
+td.detail {
+  color: var(--muted);
+  font-size: 0.85rem;
+  word-break: break-word;
+}

@@ -68,6 +68,9 @@ export function regenerateWithdrawalPdf(input: { auth?: ApiAuth; payload?: unkno
   if (request.type !== 'withdrawal' || (request.status !== 'approved' && request.status !== 'completed')) {
     throw new AppError('CONFLICT', 'สร้าง PDF ได้เฉพาะคำขอถอนเงินที่อนุมัติแล้ว');
   }
+  if (request.filesPurgedAt) {
+    throw new AppError('CONFLICT', 'เอกสารของคำขอนี้ถูกลบแล้วเพราะครบระยะเวลาเก็บรักษา');
+  }
   if (!generateWithdrawalPdf(request, deps)) {
     throw new AppError('CONFLICT', 'สร้าง PDF ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
   }

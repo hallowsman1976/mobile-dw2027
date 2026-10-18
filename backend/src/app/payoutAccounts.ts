@@ -89,6 +89,7 @@ export function registerPayoutAccount(
       reviewedAt: '',
       rejectReason: '',
       retiredAt: '',
+      filesPurgedAt: '',
     };
     deps.data.savePayoutAccount(account);
     deps.data.appendAuditLog({

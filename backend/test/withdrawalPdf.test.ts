@@ -45,6 +45,7 @@ beforeEach(() => {
     reviewedAt: '2026-01-01T00:00:00.000Z',
     rejectReason: '',
     retiredAt: '',
+    filesPurgedAt: '',
   });
   scene.addStaff('checker', ['reviewer']);
   scene.addStaff('boss', ['approver']);

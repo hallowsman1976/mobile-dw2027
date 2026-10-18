@@ -4,6 +4,8 @@
 export type Row = Record<string, string>;
 
 export class SheetTable {
+  private headerChecked = false;
+
   constructor(
     private readonly book: () => GoogleAppsScript.Spreadsheet.Spreadsheet,
     private readonly name: string,
@@ -14,13 +16,32 @@ export class SheetTable {
     const sheet = this.book().getSheetByName(this.name);
     if (!sheet || sheet.getLastRow() < 2) return [];
     const [header, ...rows] = sheet.getDataRange().getValues();
-    return rows.map((values) => {
-      const row: Row = {};
-      header.forEach((name, i) => {
-        row[String(name)] = toText(values[i]);
-      });
-      return row;
+    return rows.map((values) => this.toRow(header, values));
+  }
+
+  /** อ่านจากแถวล่างสุดขึ้นไปทีละชุด หยุดเมื่อ visit คืน false */
+  scanBackwards(visit: (row: Row) => boolean, chunkSize = 1000): void {
+    const sheet = this.book().getSheetByName(this.name);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    const width = sheet.getLastColumn();
+    const header = sheet.getRange(1, 1, 1, width).getValues()[0];
+    for (let end = sheet.getLastRow(); end >= 2; end -= chunkSize) {
+      const start = Math.max(2, end - chunkSize + 1);
+      const values = sheet.getRange(start, 1, end - start + 1, width).getValues();
+      for (let i = values.length - 1; i >= 0; i--) {
+        if (!visit(this.toRow(header, values[i]))) return;
+      }
+    }
+  }
+
+  /** คอลัมน์ที่ยังไม่มีในชีต (เพิ่มในเวอร์ชันหลัง) ได้ค่า '' */
+  private toRow(header: unknown[], values: unknown[]): Row {
+    const row: Row = {};
+    for (const column of this.columns) row[column] = '';
+    header.forEach((name, i) => {
+      row[String(name)] = toText(values[i]);
     });
+    return row;
   }
 
   /** แทนที่แถวแรกที่ keyColumn ตรงกัน หรือเพิ่มแถวใหม่ถ้าไม่มี (ผู้เรียกต้องถือ lock) */
@@ -77,12 +98,35 @@ export class SheetTable {
   private ensureSheet(): GoogleAppsScript.Spreadsheet.Sheet {
     const book = this.book();
     const existing = book.getSheetByName(this.name);
-    if (existing) return existing;
+    if (existing) {
+      if (!this.headerChecked) {
+        this.addMissingColumns(existing);
+        this.headerChecked = true;
+      }
+      return existing;
+    }
     const sheet = book.insertSheet(this.name);
     sheet.getRange(1, 1, sheet.getMaxRows(), this.columns.length).setNumberFormat('@');
     sheet.getRange(1, 1, 1, this.columns.length).setValues([[...this.columns]]).setFontWeight('bold');
     sheet.setFrozenRows(1);
+    this.headerChecked = true;
     return sheet;
+  }
+
+  /**
+   * ชีตที่สร้างโดยเวอร์ชันก่อนอาจยังไม่มีคอลัมน์ใหม่ เพิ่มหัวคอลัมน์ต่อท้ายให้
+   * คอลัมน์ใหม่ต้องต่อท้ายรายการ columns เสมอ ลำดับในชีตจึงตรงกับที่ upsert/append เขียน
+   */
+  private addMissingColumns(sheet: GoogleAppsScript.Spreadsheet.Sheet): void {
+    const width = sheet.getLastColumn();
+    const header = sheet.getRange(1, 1, 1, width).getValues()[0].map(String);
+    const missing = this.columns.filter((column) => !header.includes(column));
+    if (missing.length === 0) return;
+    if (sheet.getMaxColumns() < width + missing.length) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), width + missing.length - sheet.getMaxColumns());
+    }
+    sheet.getRange(1, width + 1, sheet.getMaxRows(), missing.length).setNumberFormat('@');
+    sheet.getRange(1, width + 1, 1, missing.length).setValues([missing]).setFontWeight('bold');
   }
 }
 

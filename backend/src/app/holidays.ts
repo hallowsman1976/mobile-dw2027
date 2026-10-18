@@ -1,9 +1,8 @@
 // วันหยุดของสหกรณ์ ใช้คำนวณวันทำการ (ticket 07)
 import type { ApiAuth, Holiday } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
-import { AppError } from './errors';
 import { requireStaff } from './staff';
-import { requirePayload, requireString } from './validate';
+import { requirePayload, requireString, requireYmd } from './validate';
 
 export function listHolidays(input: { auth?: ApiAuth }, deps: Deps): Holiday[] {
   requireStaff(input.auth, deps);
@@ -35,10 +34,5 @@ export function removeHoliday(input: { auth?: ApiAuth; payload?: unknown }, deps
 }
 
 function requireDate(value: unknown): string {
-  const date = typeof value === 'string' ? value.trim() : '';
-  const parsed = new Date(`${date}T00:00:00Z`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
-    throw new AppError('VALIDATION', 'วันที่ต้องอยู่ในรูปแบบ ปปปป-ดด-วว (ค.ศ.)');
-  }
-  return date;
+  return requireYmd(value, 'วันที่ต้องอยู่ในรูปแบบ ปปปป-ดด-วว (ค.ศ.)');
 }

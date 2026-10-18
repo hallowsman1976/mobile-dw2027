@@ -41,6 +41,8 @@ export type FakeWorld = {
   slipReadings: Map<string, SlipReading>;
   /** ตั้งเป็น true เพื่อจำลองว่าสร้าง PDF ไม่สำเร็จ */
   pdfDown: boolean;
+  /** fileId ที่ลบไม่ได้ (จำลอง Drive ผิดพลาด) */
+  failingDeletes: Set<string>;
   /** จำนวนครั้งที่เรียก SlipOK ปลอม */
   slipCalls: number;
   cache: Map<string, string>;
@@ -113,6 +115,11 @@ export function createFakeWorld(): FakeWorld {
       },
       appendAuditLog: (entry) => {
         auditLog.push({ ...entry });
+      },
+      scanAuditLogNewestFirst: (visit) => {
+        for (let i = auditLog.length - 1; i >= 0; i--) {
+          if (!visit({ ...auditLog[i] })) return;
+        }
       },
       listPayoutAccounts: () => payoutAccounts.map((a) => ({ ...a })),
       savePayoutAccount: (account) => {
@@ -188,6 +195,10 @@ export function createFakeWorld(): FakeWorld {
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         contentBase64: Buffer.from(JSON.stringify(sheets), 'utf8').toString('base64'),
       }),
+      deleteFile: (fileId) => {
+        if (world.failingDeletes.has(fileId)) throw new Error('Drive delete failed');
+        files.delete(fileId);
+      },
       readFile: (fileId) => {
         const file = files.get(fileId);
         return file ? { fileName: file.fileName, mimeType: file.mimeType, contentBase64: file.contentBase64 } : null;
@@ -237,6 +248,7 @@ export function createFakeWorld(): FakeWorld {
     slipReadings,
     slipCalls: 0,
     pdfDown: false,
+    failingDeletes: new Set<string>(),
     cache,
     addBinding: (partial) => {
       const binding: LineBinding = {

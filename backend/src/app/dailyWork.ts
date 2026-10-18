@@ -12,13 +12,13 @@ import type { Deps, MemberRequest, SpreadsheetTab } from '../adapters/ports';
 import { AppError } from './errors';
 import { audit, notifyStatusChanged } from './requests';
 import { requireStaff } from './staff';
-import { requirePayload } from './validate';
+import { requirePayload, requireYmd } from './validate';
 
 const MAX_BATCH = 200;
 
 export function exportApproved(input: { auth?: ApiAuth; payload?: unknown }, deps: Deps): ExportApprovedResult {
   const staff = requireStaff(input.auth, deps);
-  const processingDate = requireYmd(requirePayload(input.payload).processingDate);
+  const processingDate = requireYmd(requirePayload(input.payload).processingDate, 'กรุณาเลือกวันทำการ');
 
   const approved = deps.data
     .listRequests()
@@ -125,10 +125,4 @@ function totalRow(requests: MemberRequest[], amountColumn: number): (string | nu
 
 function sum(requests: MemberRequest[]): number {
   return Math.round(requests.reduce((total, r) => total + r.amount * 100, 0)) / 100;
-}
-
-function requireYmd(value: unknown): string {
-  const date = typeof value === 'string' ? value : '';
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new AppError('VALIDATION', 'กรุณาเลือกวันทำการ');
-  return date;
 }

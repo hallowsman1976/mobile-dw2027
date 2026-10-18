@@ -114,6 +114,22 @@ export function createDriveFileStore(): FileStore {
       }
     },
 
+    deleteFile(fileId: string): void {
+      const drive = requireDrive();
+      try {
+        // ย้ายไปถังขยะ Drive ลบถาวรเองหลัง 30 วัน
+        drive.Files.update({ trashed: true }, fileId);
+      } catch (err) {
+        let exists = true;
+        try {
+          exists = !drive.Files.get(fileId, { fields: 'trashed' }).trashed;
+        } catch {
+          exists = false;
+        }
+        if (exists) throw err;
+      }
+    },
+
     readFile(fileId: string): DocumentContent | null {
       const drive = requireDrive();
       let meta: GoogleAppsScript.Drive_v3.Drive.V3.Schema.File;

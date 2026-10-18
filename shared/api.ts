@@ -404,3 +404,69 @@ export type LineGroupSettings = {
 };
 
 export type UpdateNotificationSettingsPayload = { staffGroupId?: string; staffWebUrl?: string };
+
+// ---------- audit log ----------
+
+export type AuditLogEntry = {
+  /** ISO time */
+  at: string;
+  /** username ของเจ้าหน้าที่ หรือ member:<รหัสสมาชิก> หรือ system */
+  actor: string;
+  action: string;
+  target: string;
+  detail: string;
+};
+
+export type ListAuditLogPayload = {
+  /** YYYY-MM-DD ตามเวลาไทย */
+  fromDate?: string;
+  toDate?: string;
+  /** ค้นบางส่วนของผู้กระทำ เช่น admin หรือ member:00123 */
+  actor?: string;
+  /** ค้นบางส่วนของเป้าหมาย เช่น เลขที่คำขอ */
+  target?: string;
+  /** ข้ามรายการที่ตรงเงื่อนไขไปกี่รายการ (แบ่งหน้า) */
+  offset?: number;
+};
+
+export type ListAuditLogResult = {
+  /** ใหม่สุดก่อน */
+  entries: AuditLogEntry[];
+  /** offset ของหน้าถัดไป หรือ null ถ้าไม่มีแล้ว */
+  nextOffset: number | null;
+};
+
+export const AUDIT_LOG_PAGE_SIZE = 50;
+
+/** ชื่อภาษาไทยของ action ที่บันทึกใน audit log (action ที่ไม่มีในนี้แสดงชื่อเดิม) */
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  bindLineAccount: 'ผูกบัญชี LINE',
+  setPin: 'ตั้ง PIN',
+  changePin: 'เปลี่ยน PIN',
+  pinLocked: 'PIN ถูกล็อก',
+  resetPin: 'รีเซ็ต PIN',
+  unbindLineAccount: 'ยกเลิกการผูกบัญชี LINE',
+  importAccounts: 'นำเข้าบัญชีเงินฝาก',
+  registerPayoutAccount: 'ลงทะเบียนบัญชีรับเงิน',
+  approvePayoutAccount: 'อนุมัติบัญชีรับเงิน',
+  rejectPayoutAccount: 'ปฏิเสธบัญชีรับเงิน',
+  retirePayoutAccount: 'เลิกใช้บัญชีรับเงิน',
+  viewDocument: 'เปิดดูเอกสาร',
+  submitDepositRequest: 'ยื่นคำขอฝากเงิน',
+  submitWithdrawalRequest: 'ยื่นคำขอถอนเงิน',
+  cancelRequest: 'ยกเลิกคำขอ',
+  reviewRequest: 'ตรวจคำขอผ่าน',
+  approveRequest: 'อนุมัติคำขอ',
+  rejectRequest: 'ปฏิเสธคำขอ',
+  completeRequest: 'ปิดคำขอ (เสร็จสิ้น)',
+  exportApproved: 'export รายการที่อนุมัติ',
+  generatePdf: 'สร้าง PDF ใบถอนเงิน',
+  pdfFailed: 'สร้าง PDF ไม่สำเร็จ',
+  notifyFailed: 'ส่งข้อความ LINE ไม่สำเร็จ',
+  addHoliday: 'เพิ่มวันหยุด',
+  removeHoliday: 'ลบวันหยุด',
+  setStaffGroup: 'ตั้งกลุ่มแจ้งเตือนเจ้าหน้าที่',
+  setStaffWebUrl: 'ตั้งลิงก์หน้าเว็บเจ้าหน้าที่',
+  purgeDocuments: 'ลบเอกสารที่ครบระยะเวลาเก็บ',
+  purgeDocumentsFailed: 'ลบเอกสารที่ครบระยะเวลาเก็บไม่สำเร็จ',
+};

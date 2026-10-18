@@ -9,6 +9,7 @@ import { createSheetsDataStore } from './adapters/gas/sheetsDataStore';
 import { createSlipOkVerifier } from './adapters/gas/slipOk';
 import { handleRequestBody } from './app/handle';
 import { handleLineWebhook, isLineWebhookBody } from './app/lineGroups';
+import { purgeExpiredDocuments } from './app/retention';
 import { bootstrapFirstAdministrator } from './app/staff';
 
 function requireProperty(key: string): string {
@@ -62,7 +63,6 @@ export function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Cont
   return json(handleRequestBody(body, buildDeps()));
 }
 
-
 /**
  * รันจาก editor ของ Apps Script ครั้งเดียว เพื่อสร้างผู้ดูแลระบบคนแรก
  * ตั้ง Script Properties INITIAL_ADMIN_USERNAME, INITIAL_ADMIN_FULL_NAME, INITIAL_ADMIN_PASSWORD ก่อนรัน
@@ -88,5 +88,40 @@ export function checkScriptProperties(): void {
   for (const key of ['SPREADSHEET_ID', 'LINE_LOGIN_CHANNEL_ID', 'LINE_CHANNEL_ACCESS_TOKEN']) {
     const value = props.getProperty(key) ?? '';
     console.log(`${key}: ${value ? `ตั้งแล้ว (${value.length} ตัวอักษร)` : 'ยังไม่ได้ตั้ง'}`);
+  }
+}
+
+// ---------- ลบเอกสารที่ครบระยะเวลาเก็บ (trigger รายเดือน) ----------
+
+const RETENTION_HANDLER = 'runDocumentRetention';
+const RETENTION_CONTINUE_HANDLER = 'continueDocumentRetention';
+/** หยุดก่อนเวลา 6 นาทีของ Apps Script แล้วทำต่อในรอบถัดไป */
+const RETENTION_TIME_BUDGET_MS = 4.5 * 60_000;
+
+/** รันจาก editor ของ Apps Script ครั้งเดียว เพื่อตั้ง trigger ทุกวันที่ 1 ของเดือน เวลาประมาณ 02:00 */
+export function installDocumentRetentionTrigger(): void {
+  deleteTriggers(RETENTION_HANDLER);
+  ScriptApp.newTrigger(RETENTION_HANDLER).timeBased().onMonthDay(1).atHour(2).create();
+  console.log('ตั้ง trigger ลบเอกสารที่ครบระยะเวลาเก็บ ทุกวันที่ 1 ของเดือนแล้ว');
+}
+
+export function runDocumentRetention(): void {
+  const deadline = Date.now() + RETENTION_TIME_BUDGET_MS;
+  const result = purgeExpiredDocuments(buildDeps(), () => Date.now() > deadline);
+  console.log(`ลบเอกสารแล้ว ${result.purged} รายการ ไม่สำเร็จ ${result.failed} รายการ เหลือ ${result.remaining} รายการ`);
+  if (result.remaining > 0) {
+    ScriptApp.newTrigger(RETENTION_CONTINUE_HANDLER).timeBased().after(60_000).create();
+  }
+}
+
+/** trigger ครั้งเดียวที่ runDocumentRetention ตั้งไว้เมื่อทำไม่หมดในรอบเดียว */
+export function continueDocumentRetention(): void {
+  deleteTriggers(RETENTION_CONTINUE_HANDLER);
+  runDocumentRetention();
+}
+
+function deleteTriggers(handler: string): void {
+  for (const trigger of ScriptApp.getProjectTriggers()) {
+    if (trigger.getHandlerFunction() === handler) ScriptApp.deleteTrigger(trigger);
   }
 }

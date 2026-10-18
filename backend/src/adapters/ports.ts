@@ -90,6 +90,8 @@ export type PayoutAccount = {
   reviewedAt: string;
   rejectReason: string;
   retiredAt: string;
+  /** เวลาที่ลบไฟล์เอกสารเพราะครบระยะเวลาเก็บ '' ถ้ายังไม่ลบ */
+  filesPurgedAt: string;
 };
 
 /** คำขอฝากหรือถอนเงิน ชื่อและประเภทบัญชีบันทึกไว้ ณ เวลายื่น */
@@ -125,6 +127,8 @@ export type MemberRequest = {
   submittedAt: string;
   /** วันทำการที่จะดำเนินการ YYYY-MM-DD */
   processingDate: string;
+  /** เวลาที่ลบไฟล์ (สลิป ลายมือชื่อ PDF) เพราะครบระยะเวลาเก็บ '' ถ้ายังไม่ลบ */
+  filesPurgedAt: string;
 };
 
 /** หมวดของไฟล์ แต่ละหมวดเป็นโฟลเดอร์ย่อยใน Drive */
@@ -132,7 +136,7 @@ export type FileCategory = 'payoutDocuments' | 'signatures' | 'slips' | 'pdfs';
 
 export type AuditEntry = {
   at: string;
-  /** username ของเจ้าหน้าที่ หรือ member:<รหัสสมาชิก> */
+  /** username ของเจ้าหน้าที่ หรือ member:<รหัสสมาชิก> หรือ system (งานตามเวลา) */
   actor: string;
   action: string;
   target: string;
@@ -162,6 +166,11 @@ export interface DataStore {
   replaceDepositAccounts(accounts: DepositAccount[]): void;
 
   appendAuditLog(entry: AuditEntry): void;
+  /**
+   * อ่าน audit log จากใหม่ไปเก่า (log เพิ่มต่อท้ายตามเวลาเสมอ) ส่งทีละรายการให้ visit
+   * หยุดเมื่อ visit คืน false เพื่อไม่ต้องอ่านทั้งตาราง
+   */
+  scanAuditLogNewestFirst(visit: (entry: AuditEntry) => boolean): void;
 
   listPayoutAccounts(): PayoutAccount[];
   /** เพิ่มหรือแทนที่ตาม id */
@@ -207,6 +216,8 @@ export interface FileStore {
   saveFile(category: FileCategory, fileName: string, mimeType: string, contentBase64: string): string;
   /** คืน null ถ้าไม่พบไฟล์ */
   readFile(fileId: string): DocumentContent | null;
+  /** ย้ายไฟล์ไปถังขยะ ไฟล์ที่ไม่มีแล้วถือว่าลบสำเร็จ โยน error ถ้าลบไม่ได้ */
+  deleteFile(fileId: string): void;
 
   /**
    * สร้าง PDF ใบถอนเงินจาก Google Docs ต้นแบบ: แทน {{ชื่อตัวแปร}} ด้วยข้อความ และ {{ชื่อรูป}} ด้วยรูป PNG

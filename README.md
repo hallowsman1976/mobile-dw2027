@@ -88,9 +88,10 @@ npm run dev:member
    - `SLIPOK_API_KEY` และ `SLIPOK_BRANCH_ID` = จากบัญชี SlipOK ของสหกรณ์ (ถ้ายังไม่ตั้ง ระบบรับสลิปทุกใบเป็น ยังไม่ตรวจสลิป ให้เจ้าหน้าที่ตรวจเอง)
    - หลังรันระบบครั้งแรก ในชีต `ตั้งค่า` ของ Spreadsheet เพิ่มแถว key `coopReceivingAccount` value = เลขบัญชีกรุงไทยที่สหกรณ์รับโอน (ตัวเลขล้วน) เพื่อให้ระบบตรวจว่าสลิปโอนเข้าบัญชีสหกรณ์
    - ระบบสร้างโฟลเดอร์ `ฝากถอนออนไลน์ - เอกสาร` ใน Drive เองเมื่อมีไฟล์แรก แล้วจำ ID ไว้ใน Script Properties (`DRIVE_ROOT_FOLDER_ID`, `DRIVE_FOLDER_*`) อย่าแชร์โฟลเดอร์นี้
-8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run ดู log ว่าตั้งครบ ครั้งแรกระบบจะขออนุญาตสิทธิ์ Sheets, Docs, Drive (เฉพาะไฟล์ที่ระบบสร้าง) และการเรียกเว็บภายนอก ถ้าภายหลังเพิ่มสิทธิ์ใหม่ใน `appsscript.json` ต้องรันฟังก์ชันใดก็ได้ใน editor เพื่ออนุญาตอีกครั้ง
+8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run ดู log ว่าตั้งครบ ครั้งแรกระบบจะขออนุญาตสิทธิ์ Sheets, Docs, Drive (เฉพาะไฟล์ที่ระบบสร้าง), การเรียกเว็บภายนอก และการตั้ง trigger ถ้าภายหลังเพิ่มสิทธิ์ใหม่ใน `appsscript.json` ต้องรันฟังก์ชันใดก็ได้ใน editor เพื่ออนุญาตอีกครั้ง
 9. สร้างผู้ดูแลระบบคนแรก: ตั้ง Script Properties `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_FULL_NAME`, `INITIAL_ADMIN_PASSWORD` (อย่างน้อย 10 ตัวอักษร) แล้วรันฟังก์ชัน `createFirstAdministrator` ระบบจะลบ `INITIAL_ADMIN_PASSWORD` ออกให้เมื่อสร้างสำเร็จ
-10. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone แล้วจด URL ที่ลงท้ายด้วย `/exec`
+10. ตั้ง trigger ลบเอกสารที่ครบระยะเวลาเก็บ: รันฟังก์ชัน `installDocumentRetentionTrigger` ครั้งเดียว (ทำงานทุกวันที่ 1 ของเดือน ประมาณ 02:00) ระยะเวลาเก็บเปลี่ยนได้ที่ชีต `ตั้งค่า` key `documentRetentionYears` (ค่าเริ่มต้น 10 ปี ควรยืนยันกับผู้สอบบัญชี) ดูผลได้ที่ Executions และ audit log ในหน้าเว็บเจ้าหน้าที่
+11. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone แล้วจด URL ที่ลงท้ายด้วย `/exec`
 
 **ทุกครั้งที่ push โค้ดใหม่** ให้ Deploy → Manage deployments → แก้ deployment เดิม → Version: New version เพื่อให้ URL เดิมได้โค้ดใหม่ (ถ้าสร้าง deployment ใหม่จะได้ URL ใหม่)
 

@@ -76,6 +76,7 @@ const PAYOUT_COLUMNS = [
   'reviewedAt',
   'rejectReason',
   'retiredAt',
+  'filesPurgedAt',
 ] as const;
 
 const SETTING_COLUMNS = ['key', 'value'] as const;
@@ -112,6 +113,7 @@ const REQUEST_COLUMNS = [
   'pdfFileId',
   'submittedAt',
   'processingDate',
+  'filesPurgedAt',
 ] as const;
 
 const HOLIDAY_COLUMNS = ['date', 'name'] as const;
@@ -217,6 +219,10 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
 
     appendAuditLog(entry: AuditEntry): void {
       auditLog.append({ ...entry });
+    },
+
+    scanAuditLogNewestFirst(visit: (entry: AuditEntry) => boolean): void {
+      auditLog.scanBackwards((row) => visit(row as AuditEntry));
     },
 
     listPayoutAccounts: () =>

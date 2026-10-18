@@ -3,6 +3,7 @@ import './staff.css';
 import type { StaffLoginResult, StaffProfile } from '../../../shared/api';
 import { callApi } from '../../lib/apiClient';
 import { h } from '../../lib/dom';
+import { auditLogSection } from './auditLog';
 import { dailyWorkSection } from './dailyWork';
 import { holidaysSection } from './holidays';
 import { importAccountsSection } from './importAccounts';
@@ -108,6 +109,7 @@ function renderHome(): void {
       notificationSettingsSection(),
       templateSettingsSection(),
       staffManagementSection(),
+      auditLogSection(),
     );
   }
 
