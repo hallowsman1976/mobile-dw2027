@@ -22,11 +22,18 @@ describe('me', () => {
   });
 
   it('ผู้ที่ผูกบัญชี LINE แล้วได้รหัสสมาชิก', () => {
-    world.bindings.push({ memberCode: '00123', lineUserId: 'U-somchai' });
+    world.addBinding({ memberCode: '00123', lineUserId: 'U-somchai' });
 
     expect(call({ action: 'me', auth: { idToken: 'token-somchai' } })).toEqual({
       ok: true,
-      data: { bound: true, displayName: 'สมชาย', memberCode: '00123' },
+      data: {
+        bound: true,
+        displayName: 'สมชาย',
+        memberCode: '00123',
+        memberName: '',
+        pinSet: false,
+        pinLocked: false,
+      },
     });
   });
 
@@ -41,7 +48,7 @@ describe('me', () => {
   });
 
   it('ผูกบัญชีของคนอื่นไม่ทำให้ผู้ใช้นี้ถือว่าผูกแล้ว', () => {
-    world.bindings.push({ memberCode: '00999', lineUserId: 'U-someone-else' });
+    world.addBinding({ memberCode: '00999', lineUserId: 'U-someone-else' });
 
     expect(call({ action: 'me', auth: { idToken: 'token-somchai' } })).toMatchObject({
       ok: true,

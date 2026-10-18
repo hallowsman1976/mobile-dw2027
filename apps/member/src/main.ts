@@ -1,43 +1,75 @@
-import liff from '@line/liff';
 import '../../lib/base.css';
+import './member.css';
 import type { MeResult } from '../../../shared/api';
-import { callApi } from '../../lib/apiClient';
-import { requireEnv, showStatus } from '../../lib/view';
+import { closeLiff, initLiff, memberCall } from './api';
+import { MENU, renderMessage, type PageId } from './layout';
+import { renderBindForm, renderConsent, renderSetPin } from './onboarding';
+import { renderAccount, renderComingSoon, renderContact, renderHome } from './pages';
 
-async function start(): Promise<void> {
-  const liffId = requireEnv('VITE_LIFF_ID', import.meta.env.VITE_LIFF_ID);
-  const gasUrl = requireEnv('VITE_GAS_URL', import.meta.env.VITE_GAS_URL);
+const PAGES: PageId[] = ['home', ...MENU.map((item) => item.id)];
 
-  await liff.init({ liffId });
-  if (!liff.isLoggedIn()) {
-    // เปิดจากเบราว์เซอร์นอก LINE: ให้ล็อกอิน LINE ก่อน แล้ว LINE จะพากลับมาหน้านี้
-    liff.login();
-    return;
-  }
+function currentPage(): PageId {
+  const page = new URLSearchParams(location.search).get('page') as PageId | null;
+  return page && PAGES.includes(page) ? page : 'home';
+}
 
-  const idToken = liff.getIDToken();
-  if (!idToken) {
-    showStatus(['ไม่ได้รับข้อมูลยืนยันตัวตนจาก LINE', 'ผู้ดูแลระบบต้องเปิด scope openid ให้ LIFF app'], {
-      error: true,
-    });
-    return;
-  }
+/** สลับหน้าโดยไม่โหลดใหม่ (LIFF โหลดช้า) และให้ปุ่มย้อนกลับทำงาน */
+function navigate(page: PageId): void {
+  const url = new URL(location.href);
+  url.searchParams.set('page', page);
+  history.pushState({}, '', url);
+  void route();
+}
 
-  const res = await callApi<MeResult>(gasUrl, 'me', { idToken });
+document.addEventListener('click', (event) => {
+  const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('a[data-nav]');
+  if (!link) return;
+  event.preventDefault();
+  navigate(link.dataset.nav as PageId);
+});
+window.addEventListener('popstate', () => void route());
+
+async function route(): Promise<void> {
+  const res = await memberCall<MeResult>('me');
   if (!res.ok) {
-    showStatus([res.error.message], { error: true, retry: true });
+    renderMessage('ฝากถอนออนไลน์', [res.error.message], { label: 'ปิดแล้วเปิดใหม่', onClick: closeLiff });
     return;
   }
 
   const me = res.data;
-  showStatus(
-    me.bound
-      ? [`สวัสดี ${me.displayName}`, `รหัสสมาชิก ${me.memberCode}`]
-      : [`สวัสดี ${me.displayName}`, 'ยังไม่ผูกบัญชี'],
-  );
+  if (!me.bound) {
+    renderConsent(() =>
+      renderBindForm(() => renderSetPin(() => void route(), 'ขั้นที่ 3 จาก 3 · ตั้ง PIN สำหรับถอนเงิน')),
+    );
+    return;
+  }
+  if (!me.pinSet && !me.pinLocked) {
+    renderSetPin(() => void route(), 'ตั้ง PIN ก่อนใช้งาน');
+    return;
+  }
+
+  const page = currentPage();
+  switch (page) {
+    case 'home':
+      return renderHome(me);
+    case 'account':
+      return renderAccount(me);
+    case 'contact':
+      return renderContact();
+    default:
+      return renderComingSoon(page);
+  }
+}
+
+async function start(): Promise<void> {
+  if (!(await initLiff())) return;
+  await route();
 }
 
 start().catch((err: unknown) => {
   console.error(err);
-  showStatus([err instanceof Error ? err.message : 'เปิดระบบไม่สำเร็จ'], { error: true, retry: true });
+  renderMessage('ฝากถอนออนไลน์', [err instanceof Error ? err.message : 'เปิดระบบไม่สำเร็จ'], {
+    label: 'ลองใหม่',
+    onClick: () => location.reload(),
+  });
 });

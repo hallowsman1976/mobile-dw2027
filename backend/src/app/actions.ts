@@ -1,7 +1,7 @@
-import type { ApiAuth, MeResult, PingResult } from '../../../shared/api';
+import type { ApiAuth, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
-import { requireLineUser } from './auth';
 import { depositAccountImportStatus, importAccounts } from './depositAccounts';
+import { bindLineAccount, listMyAccounts, me, setPin } from './members';
 import {
   createStaff,
   listStaff,
@@ -22,19 +22,14 @@ function ping(_input: unknown, deps: Deps): PingResult {
   return { serverTime: deps.clock.now().toISOString() };
 }
 
-/** สถานะการผูกบัญชี LINE ของผู้ที่เปิด LIFF */
-function me(input: { auth?: ApiAuth }, deps: Deps): MeResult {
-  const user = requireLineUser(input.auth, deps);
-  const binding = deps.data.findActiveBindingByLineUserId(user.userId);
-  if (!binding) {
-    return { bound: false, displayName: user.displayName };
-  }
-  return { bound: true, displayName: user.displayName, memberCode: binding.memberCode };
-}
-
 export const actions: Record<string, ActionHandler> = {
   ping,
+  // สมาชิก
   me,
+  bindLineAccount,
+  setPin,
+  listMyAccounts,
+  // เจ้าหน้าที่
   staffLogin,
   staffLogout,
   staffMe,

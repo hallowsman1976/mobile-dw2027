@@ -1,6 +1,7 @@
 import { STAFF_ROLES, type AccountType, type StaffRole } from '../../../../shared/api';
 import type {
   AuditEntry,
+  BindingThrottle,
   DataStore,
   DepositAccount,
   LineBinding,
@@ -27,6 +28,23 @@ const DEPOSIT_ACCOUNT_COLUMNS = [
 
 const AUDIT_COLUMNS = ['at', 'actor', 'action', 'target', 'detail'] as const;
 
+const BINDING_COLUMNS = [
+  'id',
+  'memberCode',
+  'lineUserId',
+  'pinHash',
+  'pinSalt',
+  'pinFailedAttempts',
+  'pinLocked',
+  'consentVersion',
+  'consentAt',
+  'boundAt',
+  'unboundAt',
+  'unboundBy',
+] as const;
+
+const THROTTLE_KEY_PREFIX = 'bindingThrottle:';
+
 const STAFF_COLUMNS = [
   'username',
   'fullName',
@@ -46,15 +64,13 @@ const SESSION_KEY_PREFIX = 'staffSession:';
 /**
  * ที่เก็บข้อมูลจริง: ตารางอยู่ใน Google Sheets ส่วน session ของเจ้าหน้าที่อยู่ใน UserProperties
  * ของบัญชีที่ deploy (CacheService เก็บได้นานสุด 6 ชั่วโมง ไม่พอสำหรับ session 8 ชั่วโมง)
+ * และตัวนับการผูกบัญชีผิดอยู่ใน CacheService เพราะเป็นข้อมูลชั่วคราวที่หมดอายุเอง
  */
 export function createSheetsDataStore(spreadsheetId: string): DataStore {
   let cachedBook: GoogleAppsScript.Spreadsheet.Spreadsheet | null = null;
   const book = () => (cachedBook ??= SpreadsheetApp.openById(spreadsheetId));
-  const bindings = new SheetTable(book, SHEET_LINE_BINDINGS, [
-    'memberCode',
-    'lineUserId',
-    'unboundAt',
-  ]);
+  const bindings = new SheetTable(book, SHEET_LINE_BINDINGS, BINDING_COLUMNS);
+  const throttles = () => CacheService.getScriptCache();
   const staffTable = new SheetTable(book, SHEET_STAFF, STAFF_COLUMNS);
   const depositAccounts = new SheetTable(book, SHEET_DEPOSIT_ACCOUNTS, DEPOSIT_ACCOUNT_COLUMNS);
   const auditLog = new SheetTable(book, SHEET_AUDIT_LOG, AUDIT_COLUMNS);
@@ -87,7 +103,25 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
 
     findActiveBindingByLineUserId(lineUserId: string): LineBinding | null {
       const row = bindings.readAll().find((r) => r.lineUserId === lineUserId && !r.unboundAt);
-      return row ? { memberCode: row.memberCode, lineUserId } : null;
+      return row ? rowToBinding(row) : null;
+    },
+
+    findActiveBindingByMemberCode(memberCode: string): LineBinding | null {
+      const row = bindings.readAll().find((r) => r.memberCode === memberCode && !r.unboundAt);
+      return row ? rowToBinding(row) : null;
+    },
+
+    saveBinding(binding: LineBinding): void {
+      bindings.upsert('id', bindingToRow(binding));
+    },
+
+    getBindingThrottle(lineUserId: string): BindingThrottle | null {
+      const raw = throttles().get(THROTTLE_KEY_PREFIX + lineUserId);
+      return raw ? (JSON.parse(raw) as BindingThrottle) : null;
+    },
+
+    putBindingThrottle(lineUserId: string, throttle: BindingThrottle, ttlSeconds: number): void {
+      throttles().put(THROTTLE_KEY_PREFIX + lineUserId, JSON.stringify(throttle), ttlSeconds);
     },
 
     listDepositAccounts: () =>
@@ -136,6 +170,31 @@ function removeExpiredSessions(props: GoogleAppsScript.Properties.Properties): v
     const session = JSON.parse(raw) as StaffSession;
     if (Date.parse(session.expiresAt) <= now) props.deleteProperty(key);
   }
+}
+
+function rowToBinding(row: Row): LineBinding {
+  return {
+    id: row.id,
+    memberCode: row.memberCode,
+    lineUserId: row.lineUserId,
+    pinHash: row.pinHash,
+    pinSalt: row.pinSalt,
+    pinFailedAttempts: Number(row.pinFailedAttempts) || 0,
+    pinLocked: row.pinLocked.toUpperCase() === 'TRUE',
+    consentVersion: row.consentVersion,
+    consentAt: row.consentAt,
+    boundAt: row.boundAt,
+    unboundAt: row.unboundAt,
+    unboundBy: row.unboundBy,
+  };
+}
+
+function bindingToRow(binding: LineBinding): Row {
+  return {
+    ...binding,
+    pinFailedAttempts: String(binding.pinFailedAttempts),
+    pinLocked: binding.pinLocked ? 'TRUE' : 'FALSE',
+  };
 }
 
 function rowToStaff(row: Row): StaffAccount {

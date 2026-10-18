@@ -1,6 +1,7 @@
 // ตัวปลอมในหน่วยความจำของตัวกลางทั้งหมด ใช้ในการทดสอบเท่านั้น
 import type {
   AuditEntry,
+  BindingThrottle,
   DepositAccount,
   Deps,
   LineBinding,
@@ -18,6 +19,9 @@ export type FakeWorld = {
   sessions: Map<string, StaffSession>;
   depositAccounts: DepositAccount[];
   auditLog: AuditEntry[];
+  bindingThrottles: Map<string, BindingThrottle>;
+  /** เพิ่มการผูกบัญชีที่ใช้งานอยู่ ค่าที่ไม่ระบุเป็นค่าของการผูกใหม่ที่ยังไม่ตั้ง PIN */
+  addBinding(binding: Partial<LineBinding> & Pick<LineBinding, 'memberCode' | 'lineUserId'>): LineBinding;
   setNow(date: Date): void;
   advanceMinutes(minutes: number): void;
 };
@@ -37,14 +41,33 @@ export function createFakeWorld(): FakeWorld {
   const sessions = new Map<string, StaffSession>();
   const depositAccounts: DepositAccount[] = [];
   const auditLog: AuditEntry[] = [];
+  const bindingThrottles = new Map<string, BindingThrottle>();
   let now = new Date('2026-01-05T09:00:00+07:00');
   let uuidCounter = 0;
 
   const deps: Deps = {
     data: {
       withLock: (fn) => fn(),
-      findActiveBindingByLineUserId: (lineUserId) =>
-        bindings.find((b) => b.lineUserId === lineUserId) ?? null,
+      findActiveBindingByLineUserId: (lineUserId) => {
+        const b = bindings.find((x) => x.lineUserId === lineUserId && !x.unboundAt);
+        return b ? { ...b } : null;
+      },
+      findActiveBindingByMemberCode: (memberCode) => {
+        const b = bindings.find((x) => x.memberCode === memberCode && !x.unboundAt);
+        return b ? { ...b } : null;
+      },
+      saveBinding: (binding) => {
+        const index = bindings.findIndex((b) => b.id === binding.id);
+        if (index >= 0) bindings[index] = { ...binding };
+        else bindings.push({ ...binding });
+      },
+      getBindingThrottle: (lineUserId) => {
+        const t = bindingThrottles.get(lineUserId);
+        return t ? { ...t } : null;
+      },
+      putBindingThrottle: (lineUserId, throttle) => {
+        bindingThrottles.set(lineUserId, { ...throttle });
+      },
       listDepositAccounts: () => depositAccounts.map((a) => ({ ...a })),
       replaceDepositAccounts: (accounts) => {
         depositAccounts.splice(0, depositAccounts.length, ...accounts.map((a) => ({ ...a })));
@@ -96,6 +119,24 @@ export function createFakeWorld(): FakeWorld {
     sessions,
     depositAccounts,
     auditLog,
+    bindingThrottles,
+    addBinding: (partial) => {
+      const binding: LineBinding = {
+        id: `binding-${bindings.length + 1}`,
+        pinHash: '',
+        pinSalt: '',
+        pinFailedAttempts: 0,
+        pinLocked: false,
+        consentVersion: 'test',
+        consentAt: now.toISOString(),
+        boundAt: now.toISOString(),
+        unboundAt: '',
+        unboundBy: '',
+        ...partial,
+      };
+      bindings.push(binding);
+      return binding;
+    },
     setNow: (date) => {
       now = date;
     },

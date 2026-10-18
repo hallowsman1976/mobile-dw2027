@@ -23,13 +23,46 @@ export type ErrorCode =
   | 'VALIDATION'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  /** ผู้ใช้ LINE ยังไม่ได้ผูกบัญชี หน้าบ้านพาไปหน้าผูกบัญชี */
+  | 'NOT_BOUND'
   | 'INTERNAL';
 
 export type PingResult = { serverTime: string };
 
 export type MeResult =
   | { bound: false; displayName: string }
-  | { bound: true; displayName: string; memberCode: string };
+  | {
+      bound: true;
+      displayName: string;
+      memberCode: string;
+      /** ชื่อตามบัญชีเงินฝากบัญชีแรกของสมาชิก */
+      memberName: string;
+      pinSet: boolean;
+      pinLocked: boolean;
+    };
+
+// ---------- สมาชิก: การผูกบัญชี LINE และ PIN ----------
+
+/** เวอร์ชันนโยบายความเป็นส่วนตัวที่สมาชิกต้องยินยอม เปลี่ยนเมื่อแก้เนื้อหานโยบาย */
+export const PRIVACY_POLICY_VERSION = '2026-01-draft';
+
+export type BindLineAccountPayload = {
+  memberCode: string;
+  nationalId: string;
+  acceptedPolicyVersion: string;
+};
+
+export type BindLineAccountResult = { memberCode: string; memberName: string };
+
+export const PIN_LENGTH = 6;
+
+export type SetPinPayload = { pin: string };
+
+export type MyAccount = {
+  accountNumber: string;
+  accountName: string;
+  accountType: AccountType;
+};
 
 // ---------- เจ้าหน้าที่ ----------
 

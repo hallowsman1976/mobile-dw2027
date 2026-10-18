@@ -14,8 +14,22 @@ world.lineTokens.set('dev-line-token', { userId: 'U-dev', displayName: 'สม�
 // หลังบ้านจริงแปลงไฟล์ผ่าน Google Drive ส่วนตัวจำลองอ่านได้เฉพาะ .csv
 world.deps.files.readSpreadsheetRows = (fileName, contentBase64) =>
   fileName.toLowerCase().endsWith('.csv')
-    ? parseCsv(Buffer.from(contentBase64, 'base64').toString('utf8').replace(/^﻿/, ''))
+    ? parseCsv(Buffer.from(contentBase64, 'base64').toString('utf8').trimStart() /* ตัด BOM ที่ Excel ใส่ไว้ต้นไฟล์ */)
     : null;
+// สมาชิกทดลอง: ผูกบัญชีด้วยรหัสสมาชิก 123 และเลขบัตร 1101700230708
+world.depositAccounts.push(
+  ...[
+    { seq: '1', accountNumber: '001-1-00123-1', accountType: 'savings' as const },
+    { seq: '2', accountNumber: '002-1-00123-5', accountType: 'specialSavings' as const },
+  ].map((a) => ({
+    ...a,
+    memberCode: '00123',
+    nationalId: '1101700230708',
+    accountName: 'นายสมชาย ใจดี',
+    lastContactDate: '15/03/2569',
+    importedAt: new Date().toISOString(),
+  })),
+);
 bootstrapFirstAdministrator(
   { username: 'admin', fullName: 'ผู้ดูแลระบบ ทดลอง', password: 'admin-password-1' },
   world.deps,

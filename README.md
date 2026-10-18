@@ -13,7 +13,7 @@
 |---|---|
 | `backend/` | หลังบ้าน Google Apps Script เขียนเป็น TypeScript แล้ว build เป็นไฟล์เดียวด้วย esbuild |
 | `backend/src/app/` | ตัวรับคำสั่งและ action ทั้งหมด (กฎทางธุรกิจอยู่ที่นี่) |
-| `backend/src/adapters/` | ตัวกลาง 6 ตัว: `ports.ts` คือ interface, `gas/` คือตัวจริง, `fake/` คือตัวปลอมสำหรับทดสอบ |
+| `backend/src/adapters/` | ตัวกลาง 7 ตัว: `ports.ts` คือ interface, `gas/` คือตัวจริง, `fake/` คือตัวปลอมสำหรับทดสอบ |
 | `backend/test/` | การทดสอบผ่านตัวรับคำสั่ง (Vitest) |
 | `apps/member/` | หน้าบ้านสมาชิก (LIFF) |
 | `apps/staff/` | หน้าเว็บเจ้าหน้าที่ |
@@ -42,17 +42,21 @@ npm run dev:member
 
 `npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive)
 
-1. สร้างไฟล์ `apps/staff/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787`
+1. สร้างไฟล์ `apps/staff/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` และ `apps/member/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` กับ `VITE_DEV_ID_TOKEN=dev-line-token` (หน้าสมาชิกจะข้าม LIFF และใช้ token ทดลองแทน เฉพาะตอน `npm run dev:member`) สมาชิกทดลองผูกบัญชีด้วยรหัสสมาชิก `123` และเลขบัตร `1101700230708`
 2. รันหลังบ้านจำลอง:
 
    ```bash
    npm run dev:api
    ```
 
-3. รันหน้าเว็บเจ้าหน้าที่ในอีกเทอร์มินัล แล้วเปิด http://localhost:5174
+3. รันหน้าเว็บเจ้าหน้าที่ (http://localhost:5174) หรือหน้าสมาชิก (http://localhost:5173) ในอีกเทอร์มินัล
 
    ```bash
    npm run dev:staff
+   ```
+
+   ```bash
+   npm run dev:member
    ```
 
 ## ตั้งค่าชุดทดสอบ (ทำครั้งเดียว)
@@ -94,7 +98,7 @@ npm run dev:member
 
 ### 3. หน้าบ้านบน Cloudflare Pages
 
-1. คัดลอก `apps/member/.env.example` เป็น `apps/member/.env.test` แล้วใส่ `VITE_LIFF_ID` และ `VITE_GAS_URL`
+1. คัดลอก `apps/member/.env.example` เป็น `apps/member/.env.test` แล้วใส่ `VITE_LIFF_ID`, `VITE_GAS_URL` และ `VITE_COOP_PHONE` (เบอร์ที่แสดงในหน้าติดต่อสหกรณ์)
 2. คัดลอก `apps/staff/.env.example` เป็น `apps/staff/.env.test` แล้วใส่ `VITE_GAS_URL`
 3. ล็อกอิน Cloudflare ครั้งแรก (ทำเองในเทอร์มินัล):
 
@@ -108,7 +112,23 @@ npm run dev:member
    npm run pages:test
    ```
 
-### 4. ตรวจว่าใช้งานได้
+### 4. Rich Menu ของ LINE OA
 
-- เปิด LIFF URL (`https://liff.line.me/<LIFF ID>`) ใน LINE จะต้องเห็น "สวัสดี <ชื่อ LINE>" และ "ยังไม่ผูกบัญชี"
-- เปิดหน้าเว็บเจ้าหน้าที่ จะต้องเห็น "เชื่อมต่อหลังบ้านได้" พร้อมเวลา
+สร้างใน LINE Official Account Manager → Rich menus → Create ใช้ template แบบ 6 ช่อง (2 แถว × 3 คอลัมน์) ตั้ง Display: Show และให้แต่ละช่องเป็น Action `Link` ไปที่ LIFF URL ตามตาราง (แทน `<LIFF ID>` ด้วย LIFF ID ของชุดนั้น)
+
+| ช่อง | ข้อความบนปุ่ม | Link |
+|---|---|---|
+| 1 | ฝากเงิน | `https://liff.line.me/<LIFF ID>?page=deposit` |
+| 2 | ถอนเงิน | `https://liff.line.me/<LIFF ID>?page=withdraw` |
+| 3 | ประวัติคำขอ | `https://liff.line.me/<LIFF ID>?page=history` |
+| 4 | บัญชีรับเงินของฉัน | `https://liff.line.me/<LIFF ID>?page=payout` |
+| 5 | ข้อมูลบัญชี / เปลี่ยน PIN | `https://liff.line.me/<LIFF ID>?page=account` |
+| 6 | ติดต่อสหกรณ์ | `https://liff.line.me/<LIFF ID>?page=contact` |
+
+สมาชิกที่ยังไม่ผูกบัญชี กดปุ่มใดก็จะไปหน้าผูกบัญชีก่อน แล้วกลับมาหน้าที่กดหลังตั้ง PIN เสร็จ
+
+### 5. ตรวจว่าใช้งานได้
+
+- นำเข้าข้อมูลบัญชีเงินฝากทดลองจากหน้าเว็บเจ้าหน้าที่
+- เปิด LIFF URL (`https://liff.line.me/<LIFF ID>`) ใน LINE จะต้องเห็นหน้านโยบายความเป็นส่วนตัว ผูกบัญชีด้วยข้อมูลทดลอง ตั้ง PIN แล้วเห็นบัญชีเงินฝากในเมนูข้อมูลบัญชี
+- เปิดหน้าเว็บเจ้าหน้าที่ แล้วเข้าสู่ระบบด้วยผู้ดูแลระบบคนแรกได้

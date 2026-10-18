@@ -161,9 +161,9 @@ describe('importAccounts', () => {
   });
 
   it('ไม่แตะการผูกบัญชี LINE', () => {
-    world.bindings.push({ memberCode: '00001', lineUserId: 'U-1' });
+    const binding = world.addBinding({ memberCode: '00001', lineUserId: 'U-1' });
     importRows([HEADER, ['1', 'A-1', '2', ID_B, 'ข', 'ออมทรัพย์', '']]);
-    expect(world.bindings).toEqual([{ memberCode: '00001', lineUserId: 'U-1' }]);
+    expect(world.bindings).toEqual([binding]);
   });
 
   it('บันทึก audit log เมื่อนำเข้าสำเร็จ', () => {

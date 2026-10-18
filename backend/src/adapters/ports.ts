@@ -3,9 +3,30 @@
 // ticket ถัด ๆ ไปจะเพิ่มเมธอดตามที่ต้องใช้
 import type { AccountType, StaffRole } from '../../../shared/api';
 
+/** การผูกบัญชี LINE หนึ่งครั้ง แถวที่ยกเลิกแล้วยังเก็บไว้เป็นประวัติ */
 export type LineBinding = {
+  id: string;
   memberCode: string;
   lineUserId: string;
+  /** '' ถ้ายังไม่ได้ตั้ง PIN หรือผู้ดูแลระบบรีเซ็ตแล้ว */
+  pinHash: string;
+  pinSalt: string;
+  pinFailedAttempts: number;
+  pinLocked: boolean;
+  consentVersion: string;
+  consentAt: string;
+  boundAt: string;
+  /** '' ถ้ายังใช้งานอยู่ */
+  unboundAt: string;
+  unboundBy: string;
+};
+
+/** ตัวนับการผูกบัญชีผิดของ LINE userId หนึ่งคน (เก็บชั่วคราว) */
+export type BindingThrottle = {
+  failures: number;
+  firstFailureAt: string;
+  /** '' ถ้าไม่ได้ล็อก */
+  lockedUntil: string;
 };
 
 export type StaffAccount = {
@@ -59,6 +80,13 @@ export interface DataStore {
   withLock<T>(fn: () => T): T;
 
   findActiveBindingByLineUserId(lineUserId: string): LineBinding | null;
+  findActiveBindingByMemberCode(memberCode: string): LineBinding | null;
+  /** เพิ่มหรือแทนที่ตาม id */
+  saveBinding(binding: LineBinding): void;
+
+  /** ตัวนับชั่วคราว หมดอายุเองหลัง ttlSeconds */
+  getBindingThrottle(lineUserId: string): BindingThrottle | null;
+  putBindingThrottle(lineUserId: string, throttle: BindingThrottle, ttlSeconds: number): void;
 
   listDepositAccounts(): DepositAccount[];
   /** แทนที่บัญชีเงินฝากทั้งตาราง (ผู้เรียกต้องถือ lock) */
