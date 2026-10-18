@@ -34,6 +34,12 @@ bootstrapFirstAdministrator(
   { username: 'admin', fullName: 'ผู้ดูแลระบบ ทดลอง', password: 'admin-password-1' },
   world.deps,
 );
+// ผู้ดูแลระบบทดลองมีทุกบทบาท เพื่อทดลองหน้าจอได้ครบ
+world.staff.get('admin')!.roles = ['reviewer', 'approver', 'systemAdministrator'];
+// กลุ่ม LINE ทดลองที่ "เชิญ" LINE OA เข้าไปแล้ว และข้อความ LINE แสดงใน console แทนการส่งจริง
+const devGroupId = `C${'0'.repeat(32)}`;
+world.lineGroups.push({ groupId: devGroupId, groupName: 'เจ้าหน้าที่สหกรณ์ (ทดลอง)', joinedAt: new Date().toISOString() });
+world.deps.messenger.pushText = (to, text) => console.log(`[LINE → ${to}]\n${text}\n`);
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];

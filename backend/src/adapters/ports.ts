@@ -1,7 +1,13 @@
 // ตัวกลาง (adapter) ที่ action handler ใช้ติดต่อโลกภายนอก
 // แต่ละตัวมีตัวจริงใน ./gas และตัวปลอมใน ./fake สำหรับทดสอบ
 // ticket ถัด ๆ ไปจะเพิ่มเมธอดตามที่ต้องใช้
-import type { AccountType, StaffRole } from '../../../shared/api';
+import type {
+  AccountType,
+  DocumentContent,
+  LineGroup,
+  PayoutAccountStatus,
+  StaffRole,
+} from '../../../shared/api';
 
 /** การผูกบัญชี LINE หนึ่งครั้ง แถวที่ยกเลิกแล้วยังเก็บไว้เป็นประวัติ */
 export type LineBinding = {
@@ -65,6 +71,26 @@ export type DepositAccount = {
   importedAt: string;
 };
 
+export type PayoutAccount = {
+  id: string;
+  memberCode: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  status: PayoutAccountStatus;
+  idCardFileId: string;
+  depositBookFileId: string;
+  payoutBookFileId: string;
+  createdAt: string;
+  reviewedBy: string;
+  reviewedAt: string;
+  rejectReason: string;
+  retiredAt: string;
+};
+
+/** หมวดของไฟล์ แต่ละหมวดเป็นโฟลเดอร์ย่อยใน Drive */
+export type FileCategory = 'payoutDocuments' | 'signatures' | 'slips' | 'pdfs';
+
 export type AuditEntry = {
   at: string;
   /** username ของเจ้าหน้าที่ หรือ member:<รหัสสมาชิก> */
@@ -94,6 +120,18 @@ export interface DataStore {
 
   appendAuditLog(entry: AuditEntry): void;
 
+  listPayoutAccounts(): PayoutAccount[];
+  /** เพิ่มหรือแทนที่ตาม id */
+  savePayoutAccount(account: PayoutAccount): void;
+
+  /** ค่าตั้งค่าที่เจ้าหน้าที่เปลี่ยนได้ คืน '' ถ้ายังไม่ตั้ง */
+  getSetting(key: string): string;
+  setSetting(key: string, value: string): void;
+
+  listLineGroups(): LineGroup[];
+  /** เพิ่มหรือแทนที่ตาม groupId */
+  saveLineGroup(group: LineGroup): void;
+
   listStaff(): StaffAccount[];
   findStaff(username: string): StaffAccount | null;
   /** เพิ่มหรือแทนที่ตาม username */
@@ -112,6 +150,11 @@ export interface FileStore {
    * เพื่อให้เลขที่ขึ้นต้นด้วย 0 ไม่หาย คืน null ถ้าอ่านไฟล์ไม่ได้
    */
   readSpreadsheetRows(fileName: string, contentBase64: string): string[][] | null;
+
+  /** บันทึกไฟล์แบบไม่แชร์ คืน fileId */
+  saveFile(category: FileCategory, fileName: string, mimeType: string, contentBase64: string): string;
+  /** คืน null ถ้าไม่พบไฟล์ */
+  readFile(fileId: string): DocumentContent | null;
 }
 
 export type LineUser = { userId: string; displayName: string };
@@ -124,8 +167,13 @@ export interface LineIdentity {
 /** ตัวตรวจสลิป (SlipOK) — ใช้ตั้งแต่ ticket 08 */
 export interface SlipVerifier {}
 
-/** ตัวส่งข้อความ LINE (Messaging API) — ใช้ตั้งแต่ ticket 06 */
-export interface Messenger {}
+/** ตัวส่งข้อความ LINE (Messaging API) */
+export interface Messenger {
+  /** ส่งข้อความถึง userId หรือ groupId โยน error ถ้าส่งไม่สำเร็จ */
+  pushText(to: string, text: string): void;
+  /** ชื่อกลุ่ม LINE คืน null ถ้าอ่านไม่ได้ */
+  getGroupName(groupId: string): string | null;
+}
 
 /** นาฬิกา (Asia/Bangkok) */
 export interface Clock {

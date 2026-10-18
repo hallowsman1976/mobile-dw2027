@@ -5,6 +5,7 @@ import { closeLiff, initLiff, memberCall } from './api';
 import { MENU, renderMessage, type PageId } from './layout';
 import { renderBindForm, renderConsent, renderSetPin } from './onboarding';
 import { renderAccount, renderComingSoon, renderContact, renderHome } from './pages';
+import { renderPayout } from './payout';
 
 const PAGES: PageId[] = ['home', ...MENU.map((item) => item.id)];
 
@@ -56,6 +57,8 @@ async function route(): Promise<void> {
       return renderAccount(me);
     case 'contact':
       return renderContact();
+    case 'payout':
+      return renderPayout(me);
     default:
       return renderComingSoon(page);
   }

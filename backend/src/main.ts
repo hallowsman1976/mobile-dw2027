@@ -3,9 +3,11 @@ import type { Deps } from './adapters/ports';
 import { gasClock } from './adapters/gas/clock';
 import { createDriveFileStore } from './adapters/gas/driveFileStore';
 import { createGasLineIdentity } from './adapters/gas/lineIdentity';
+import { createLineMessenger } from './adapters/gas/lineMessenger';
 import { gasRandom } from './adapters/gas/random';
 import { createSheetsDataStore } from './adapters/gas/sheetsDataStore';
 import { handleRequestBody } from './app/handle';
+import { handleLineWebhook, isLineWebhookBody } from './app/lineGroups';
 import { bootstrapFirstAdministrator } from './app/staff';
 
 function requireProperty(key: string): string {
@@ -24,7 +26,7 @@ function buildDeps(): Deps {
         createGasLineIdentity(requireProperty('LINE_LOGIN_CHANNEL_ID')).verifyIdToken(idToken),
     },
     slips: {},
-    messenger: {},
+    messenger: createLineMessenger(() => requireProperty('LINE_CHANNEL_ACCESS_TOKEN')),
     clock: gasClock,
     random: gasRandom,
   };
@@ -42,22 +44,18 @@ export function doGet(): GoogleAppsScript.Content.TextOutput {
 
 export function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
   const body = e.postData?.contents ?? '';
-  // webhook ของ LINE ส่ง { destination, events } มาโดยไม่มี action — ticket 06 จะจัดการ event join
-  // ตอนนี้ตอบ 200 อย่างเดียวเพื่อให้ปุ่ม Verify webhook ใน LINE Developers ผ่าน
-  if (isLineWebhook(body)) {
+  // webhook ของ LINE ตอบ 200 เสมอ (รวมถึงปุ่ม Verify ใน LINE Developers ที่ส่ง events ว่าง)
+  if (isLineWebhookBody(body)) {
+    try {
+      handleLineWebhook(body, buildDeps());
+    } catch (err) {
+      console.error(err);
+    }
     return json({ ok: true });
   }
   return json(handleRequestBody(body, buildDeps()));
 }
 
-function isLineWebhook(body: string): boolean {
-  try {
-    const parsed = JSON.parse(body) as Record<string, unknown>;
-    return Array.isArray(parsed.events) && !('action' in parsed);
-  } catch {
-    return false;
-  }
-}
 
 /**
  * รันจาก editor ของ Apps Script ครั้งเดียว เพื่อสร้างผู้ดูแลระบบคนแรก
@@ -81,7 +79,7 @@ export function createFirstAdministrator(): void {
 /** รันจาก editor ของ Apps Script เพื่อตรวจว่าตั้ง Script Properties ครบ (ไม่ log ค่าจริง) */
 export function checkScriptProperties(): void {
   const props = PropertiesService.getScriptProperties();
-  for (const key of ['SPREADSHEET_ID', 'LINE_LOGIN_CHANNEL_ID']) {
+  for (const key of ['SPREADSHEET_ID', 'LINE_LOGIN_CHANNEL_ID', 'LINE_CHANNEL_ACCESS_TOKEN']) {
     const value = props.getProperty(key) ?? '';
     console.log(`${key}: ${value ? `ตั้งแล้ว (${value.length} ตัวอักษร)` : 'ยังไม่ได้ตั้ง'}`);
   }

@@ -40,7 +40,7 @@ npm run dev:member
 
 ## พัฒนาบนเครื่องด้วยหลังบ้านจำลอง
 
-`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive)
+`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` (มีทุกบทบาท) และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive) ข้อความ LINE ไม่ได้ส่งจริง แต่พิมพ์ออกในหน้าต่างของ `npm run dev:api` และมีกลุ่ม LINE ทดลองให้เลือก
 
 1. สร้างไฟล์ `apps/staff/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` และ `apps/member/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` กับ `VITE_DEV_ID_TOKEN=dev-line-token` (หน้าสมาชิกจะข้าม LIFF และใช้ token ทดลองแทน เฉพาะตอน `npm run dev:member`) สมาชิกทดลองผูกบัญชีด้วยรหัสสมาชิก `123` และเลขบัตร `1101700230708`
 2. รันหลังบ้านจำลอง:
@@ -84,6 +84,8 @@ npm run dev:member
 7. ใน Apps Script editor → Project Settings → Script Properties ตั้งค่า
    - `SPREADSHEET_ID` = Spreadsheet ID จากข้อ 1
    - `LINE_LOGIN_CHANNEL_ID` = Channel ID ของ LINE Login channel (ข้อ 2 ด้านล่าง)
+   - `LINE_CHANNEL_ACCESS_TOKEN` = Channel access token (long-lived) ของ Messaging API channel ของ LINE OA (ข้อ 2 ด้านล่าง)
+   - ระบบสร้างโฟลเดอร์ `ฝากถอนออนไลน์ - เอกสาร` ใน Drive เองเมื่อมีไฟล์แรก แล้วจำ ID ไว้ใน Script Properties (`DRIVE_ROOT_FOLDER_ID`, `DRIVE_FOLDER_*`) อย่าแชร์โฟลเดอร์นี้
 8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run ดู log ว่าตั้งครบ ครั้งแรกระบบจะขออนุญาตสิทธิ์ Sheets, Drive (เฉพาะไฟล์ที่ระบบสร้าง) และการเรียกเว็บภายนอก ถ้าภายหลังเพิ่มสิทธิ์ใหม่ใน `appsscript.json` ต้องรันฟังก์ชันใดก็ได้ใน editor เพื่ออนุญาตอีกครั้ง
 9. สร้างผู้ดูแลระบบคนแรก: ตั้ง Script Properties `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_FULL_NAME`, `INITIAL_ADMIN_PASSWORD` (อย่างน้อย 10 ตัวอักษร) แล้วรันฟังก์ชัน `createFirstAdministrator` ระบบจะลบ `INITIAL_ADMIN_PASSWORD` ออกให้เมื่อสร้างสำเร็จ
 10. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone แล้วจด URL ที่ลงท้ายด้วย `/exec`
@@ -95,6 +97,8 @@ npm run dev:member
 1. ที่ <https://developers.line.biz> ใน Provider ของสหกรณ์ สร้าง **LINE Login channel** สำหรับชุดทดสอบ
 2. ใน channel นั้น เพิ่ม LIFF app: Size = Full, Scope = `openid` และ `profile`, Endpoint URL = URL ของ Cloudflare Pages หน้าสมาชิก (ข้อ 3) แล้วจด LIFF ID
 3. นำ Channel ID ไปใส่ Script Property `LINE_LOGIN_CHANNEL_ID`
+4. ใน **Messaging API channel** ของ LINE OA (Provider เดียวกัน): ออก Channel access token ไปใส่ `LINE_CHANNEL_ACCESS_TOKEN` ตั้ง Webhook URL เป็น URL `/exec` ของ Apps Script เปิด Use webhook และเปิด `Allow bot to join group chats`  ปุ่ม Verify ต้องขึ้น Success
+5. เชิญ LINE OA เข้ากลุ่ม LINE ของเจ้าหน้าที่ แล้วผู้ดูแลระบบเลือกกลุ่มในหน้าเว็บเจ้าหน้าที่ → การแจ้งเตือนผ่าน LINE (ระบบส่งข้อความทดสอบเข้ากลุ่ม) และใส่ลิงก์หน้าเว็บเจ้าหน้าที่
 
 ### 3. หน้าบ้านบน Cloudflare Pages
 

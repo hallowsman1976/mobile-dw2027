@@ -1,8 +1,11 @@
 // ตัวปลอมในหน่วยความจำของตัวกลางทั้งหมด ใช้ในการทดสอบเท่านั้น
+import type { DocumentContent, LineGroup } from '../../../../shared/api';
 import type {
   AuditEntry,
   BindingThrottle,
   DepositAccount,
+  FileCategory,
+  PayoutAccount,
   Deps,
   LineBinding,
   LineUser,
@@ -20,6 +23,16 @@ export type FakeWorld = {
   depositAccounts: DepositAccount[];
   auditLog: AuditEntry[];
   bindingThrottles: Map<string, BindingThrottle>;
+  payoutAccounts: PayoutAccount[];
+  settings: Map<string, string>;
+  lineGroups: LineGroup[];
+  /** fileId → ไฟล์ที่บันทึกไว้ */
+  files: Map<string, DocumentContent & { category: FileCategory }>;
+  /** ข้อความที่ส่งผ่าน LINE ตามลำดับ */
+  sentMessages: { to: string; text: string }[];
+  /** ตั้งเป็น true เพื่อจำลองว่า LINE ส่งข้อความไม่สำเร็จ */
+  messengerDown: boolean;
+  groupNames: Map<string, string>;
   /** เพิ่มการผูกบัญชีที่ใช้งานอยู่ ค่าที่ไม่ระบุเป็นค่าของการผูกใหม่ที่ยังไม่ตั้ง PIN */
   addBinding(binding: Partial<LineBinding> & Pick<LineBinding, 'memberCode' | 'lineUserId'>): LineBinding;
   setNow(date: Date): void;
@@ -42,6 +55,13 @@ export function createFakeWorld(): FakeWorld {
   const depositAccounts: DepositAccount[] = [];
   const auditLog: AuditEntry[] = [];
   const bindingThrottles = new Map<string, BindingThrottle>();
+  const payoutAccounts: PayoutAccount[] = [];
+  const settings = new Map<string, string>();
+  const lineGroups: LineGroup[] = [];
+  const files = new Map<string, DocumentContent & { category: FileCategory }>();
+  const sentMessages: { to: string; text: string }[] = [];
+  const groupNames = new Map<string, string>();
+  let fileCounter = 0;
   let now = new Date('2026-01-05T09:00:00+07:00');
   let uuidCounter = 0;
 
@@ -75,6 +95,22 @@ export function createFakeWorld(): FakeWorld {
       appendAuditLog: (entry) => {
         auditLog.push({ ...entry });
       },
+      listPayoutAccounts: () => payoutAccounts.map((a) => ({ ...a })),
+      savePayoutAccount: (account) => {
+        const index = payoutAccounts.findIndex((a) => a.id === account.id);
+        if (index >= 0) payoutAccounts[index] = { ...account };
+        else payoutAccounts.push({ ...account });
+      },
+      getSetting: (key) => settings.get(key) ?? '',
+      setSetting: (key, value) => {
+        settings.set(key, value);
+      },
+      listLineGroups: () => lineGroups.map((g) => ({ ...g })),
+      saveLineGroup: (group) => {
+        const index = lineGroups.findIndex((g) => g.groupId === group.groupId);
+        if (index >= 0) lineGroups[index] = { ...group };
+        else lineGroups.push({ ...group });
+      },
       listStaff: () => [...staff.values()].map((s) => ({ ...s, roles: [...s.roles] })),
       findStaff: (username) => {
         const s = staff.get(username);
@@ -99,19 +135,34 @@ export function createFakeWorld(): FakeWorld {
           return null;
         }
       },
+      saveFile: (category, fileName, mimeType, contentBase64) => {
+        const fileId = `file-${++fileCounter}`;
+        files.set(fileId, { category, fileName, mimeType, contentBase64 });
+        return fileId;
+      },
+      readFile: (fileId) => {
+        const file = files.get(fileId);
+        return file ? { fileName: file.fileName, mimeType: file.mimeType, contentBase64: file.contentBase64 } : null;
+      },
     },
     lineIdentity: {
       verifyIdToken: (idToken) => lineTokens.get(idToken) ?? null,
     },
     slips: {},
-    messenger: {},
+    messenger: {
+      pushText: (to, text) => {
+        if (world.messengerDown) throw new Error('LINE push failed: HTTP 500');
+        sentMessages.push({ to, text });
+      },
+      getGroupName: (groupId) => groupNames.get(groupId) ?? null,
+    },
     clock: { now: () => now },
     random: {
       uuid: () => `00000000-0000-4000-8000-${String(++uuidCounter).padStart(12, '0')}`,
     },
   };
 
-  return {
+  const world: FakeWorld = {
     deps,
     lineTokens,
     bindings,
@@ -120,6 +171,13 @@ export function createFakeWorld(): FakeWorld {
     depositAccounts,
     auditLog,
     bindingThrottles,
+    payoutAccounts,
+    settings,
+    lineGroups,
+    files,
+    sentMessages,
+    messengerDown: false,
+    groupNames,
     addBinding: (partial) => {
       const binding: LineBinding = {
         id: `binding-${bindings.length + 1}`,
@@ -144,4 +202,5 @@ export function createFakeWorld(): FakeWorld {
       now = new Date(now.getTime() + minutes * 60_000);
     },
   };
+  return world;
 }

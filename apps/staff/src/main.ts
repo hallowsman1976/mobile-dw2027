@@ -5,6 +5,8 @@ import { callApi } from '../../lib/apiClient';
 import { h } from '../../lib/dom';
 import { importAccountsSection } from './importAccounts';
 import { memberSupportSection } from './memberSupport';
+import { notificationSettingsSection } from './notificationSettings';
+import { payoutReviewSection } from './payoutReview';
 import { gasUrl, notice, session, staffCall } from './session';
 import { roleNames, staffManagementSection } from './staffManagement';
 
@@ -90,16 +92,22 @@ function renderHome(): void {
     'ออกจากระบบ',
   );
 
-  const sections: HTMLElement[] = [
-    h(
-      'section',
-      { class: 'card' },
-      h('h2', {}, 'งานของฉัน'),
-      h('p', {}, 'คิวคำขอฝากถอนจะเปิดใช้ในขั้นถัดไปของโครงการ'),
-    ),
-  ];
+  const sections: HTMLElement[] = [];
+  if (me.roles.includes('reviewer')) {
+    sections.push(payoutReviewSection());
+  }
   if (me.roles.includes('systemAdministrator')) {
-    sections.push(memberSupportSection(), importAccountsSection(), staffManagementSection());
+    sections.push(
+      memberSupportSection(),
+      importAccountsSection(),
+      notificationSettingsSection(),
+      staffManagementSection(),
+    );
+  }
+  if (sections.length === 0) {
+    sections.push(
+      h('section', { class: 'card' }, h('h2', {}, 'งานของฉัน'), h('p', {}, 'คิวคำขอฝากถอนจะเปิดใช้ในขั้นถัดไปของโครงการ')),
+    );
   }
 
   app.replaceChildren(

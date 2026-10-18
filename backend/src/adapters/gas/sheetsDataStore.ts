@@ -1,10 +1,17 @@
-import { STAFF_ROLES, type AccountType, type StaffRole } from '../../../../shared/api';
+import {
+  STAFF_ROLES,
+  type AccountType,
+  type LineGroup,
+  type PayoutAccountStatus,
+  type StaffRole,
+} from '../../../../shared/api';
 import type {
   AuditEntry,
   BindingThrottle,
   DataStore,
   DepositAccount,
   LineBinding,
+  PayoutAccount,
   StaffAccount,
   StaffSession,
 } from '../ports';
@@ -45,6 +52,30 @@ const BINDING_COLUMNS = [
 
 const THROTTLE_KEY_PREFIX = 'bindingThrottle:';
 
+export const SHEET_PAYOUT_ACCOUNTS = 'บัญชีรับเงิน';
+export const SHEET_SETTINGS = 'ตั้งค่า';
+export const SHEET_LINE_GROUPS = 'กลุ่มLINE';
+
+const PAYOUT_COLUMNS = [
+  'id',
+  'memberCode',
+  'bankCode',
+  'accountNumber',
+  'accountName',
+  'status',
+  'idCardFileId',
+  'depositBookFileId',
+  'payoutBookFileId',
+  'createdAt',
+  'reviewedBy',
+  'reviewedAt',
+  'rejectReason',
+  'retiredAt',
+] as const;
+
+const SETTING_COLUMNS = ['key', 'value'] as const;
+const LINE_GROUP_COLUMNS = ['groupId', 'groupName', 'joinedAt'] as const;
+
 const STAFF_COLUMNS = [
   'username',
   'fullName',
@@ -74,6 +105,9 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
   const staffTable = new SheetTable(book, SHEET_STAFF, STAFF_COLUMNS);
   const depositAccounts = new SheetTable(book, SHEET_DEPOSIT_ACCOUNTS, DEPOSIT_ACCOUNT_COLUMNS);
   const auditLog = new SheetTable(book, SHEET_AUDIT_LOG, AUDIT_COLUMNS);
+  const payouts = new SheetTable(book, SHEET_PAYOUT_ACCOUNTS, PAYOUT_COLUMNS);
+  const settings = new SheetTable(book, SHEET_SETTINGS, SETTING_COLUMNS);
+  const lineGroups = new SheetTable(book, SHEET_LINE_GROUPS, LINE_GROUP_COLUMNS);
   const sessions = () => PropertiesService.getUserProperties();
   let lockDepth = 0;
 
@@ -133,6 +167,28 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
 
     appendAuditLog(entry: AuditEntry): void {
       auditLog.append({ ...entry });
+    },
+
+    listPayoutAccounts: () =>
+      payouts.readAll().map((row) => ({
+        ...(row as Record<keyof PayoutAccount, string>),
+        status: row.status as PayoutAccountStatus,
+      })),
+
+    savePayoutAccount(account: PayoutAccount): void {
+      payouts.upsert('id', { ...account });
+    },
+
+    getSetting: (key: string) => settings.readAll().find((r) => r.key === key)?.value ?? '',
+
+    setSetting(key: string, value: string): void {
+      settings.upsert('key', { key, value });
+    },
+
+    listLineGroups: () => lineGroups.readAll() as LineGroup[],
+
+    saveLineGroup(group: LineGroup): void {
+      lineGroups.upsert('groupId', { ...group });
     },
 
     listStaff: () => staffTable.readAll().map(rowToStaff),

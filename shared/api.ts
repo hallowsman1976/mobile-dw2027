@@ -164,3 +164,98 @@ export type DepositAccountImportStatus = {
 };
 
 export const IMPORT_MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+// ---------- เอกสารแนบ ----------
+
+/** ไฟล์ที่สมาชิกแนบ ส่งเป็น base64 */
+export type UploadedFile = { fileName: string; mimeType: string; contentBase64: string };
+
+export const DOCUMENT_MAX_BYTES = 5 * 1024 * 1024;
+
+export const DOCUMENT_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'] as const;
+
+export type ViewDocumentPayload = { fileId: string };
+
+export type DocumentContent = { fileName: string; mimeType: string; contentBase64: string };
+
+// ---------- บัญชีรับเงิน ----------
+
+export const BANKS: readonly { code: string; name: string }[] = [
+  { code: 'KTB', name: 'ธนาคารกรุงไทย' },
+  { code: 'BBL', name: 'ธนาคารกรุงเทพ' },
+  { code: 'KBANK', name: 'ธนาคารกสิกรไทย' },
+  { code: 'SCB', name: 'ธนาคารไทยพาณิชย์' },
+  { code: 'BAY', name: 'ธนาคารกรุงศรีอยุธยา' },
+  { code: 'TTB', name: 'ธนาคารทหารไทยธนชาต' },
+  { code: 'GSB', name: 'ธนาคารออมสิน' },
+  { code: 'BAAC', name: 'ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร' },
+  { code: 'GHB', name: 'ธนาคารอาคารสงเคราะห์' },
+  { code: 'KKP', name: 'ธนาคารเกียรตินาคินภัทร' },
+  { code: 'CIMBT', name: 'ธนาคารซีไอเอ็มบี ไทย' },
+  { code: 'UOBT', name: 'ธนาคารยูโอบี' },
+  { code: 'LHB', name: 'ธนาคารแลนด์ แอนด์ เฮ้าส์' },
+  { code: 'TISCO', name: 'ธนาคารทิสโก้' },
+  { code: 'IBANK', name: 'ธนาคารอิสลามแห่งประเทศไทย' },
+];
+
+export type PayoutAccountStatus = 'pendingReview' | 'approved' | 'rejected' | 'retired';
+
+export const PAYOUT_ACCOUNT_STATUS_LABELS: Record<PayoutAccountStatus, string> = {
+  pendingReview: 'รอตรวจ',
+  approved: 'อนุมัติ',
+  rejected: 'ปฏิเสธ',
+  retired: 'เลิกใช้',
+};
+
+/** เอกสาร 3 อย่างที่ต้องแนบตอนลงทะเบียนบัญชีรับเงิน */
+export type PayoutDocumentKind = 'idCard' | 'depositBook' | 'payoutBook';
+
+export const PAYOUT_DOCUMENT_LABELS: Record<PayoutDocumentKind, string> = {
+  idCard: 'สำเนาบัตรประชาชน',
+  depositBook: 'สำเนาบัญชีเงินฝากสหกรณ์',
+  payoutBook: 'สำเนาบัญชีรับเงิน',
+};
+
+export type RegisterPayoutAccountPayload = {
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  documents: Record<PayoutDocumentKind, UploadedFile>;
+};
+
+export type MyPayoutAccount = {
+  id: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  status: PayoutAccountStatus;
+  rejectReason: string;
+  createdAt: string;
+};
+
+export type PayoutAccountForReview = MyPayoutAccount & {
+  memberCode: string;
+  memberName: string;
+  documents: Record<PayoutDocumentKind, string>;
+  reviewedBy: string;
+  reviewedAt: string;
+};
+
+export type ReviewDecisionPayload = {
+  id: string;
+  decision: 'approve' | 'reject';
+  reason?: string;
+};
+
+// ---------- กลุ่ม LINE ของเจ้าหน้าที่ ----------
+
+export type LineGroup = { groupId: string; groupName: string; joinedAt: string };
+
+export type LineGroupSettings = {
+  groups: LineGroup[];
+  staffGroupId: string;
+  /** ลิงก์หน้าเว็บเจ้าหน้าที่ ต่อท้ายข้อความแจ้งเตือนในกลุ่ม */
+  staffWebUrl: string;
+};
+
+export type UpdateNotificationSettingsPayload = { staffGroupId?: string; staffWebUrl?: string };

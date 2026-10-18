@@ -1,8 +1,17 @@
 import type { ApiAuth, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
 import { depositAccountImportStatus, importAccounts } from './depositAccounts';
+import { viewDocument } from './documents';
+import { lineGroupSettings, updateNotificationSettings } from './lineGroups';
 import { lookupMember, resetPin, unbindLineAccount } from './memberAdmin';
 import { bindLineAccount, listMyAccounts, me, setPin } from './members';
+import {
+  listMyPayoutAccounts,
+  listPayoutAccountsForReview,
+  registerPayoutAccount,
+  retirePayoutAccount,
+  reviewPayoutAccount,
+} from './payoutAccounts';
 import { changePin } from './pin';
 import {
   createStaff,
@@ -32,6 +41,9 @@ export const actions: Record<string, ActionHandler> = {
   setPin,
   changePin,
   listMyAccounts,
+  registerPayoutAccount,
+  listMyPayoutAccounts,
+  retirePayoutAccount,
   // เจ้าหน้าที่
   staffLogin,
   staffLogout,
@@ -45,4 +57,9 @@ export const actions: Record<string, ActionHandler> = {
   lookupMember,
   resetPin,
   unbindLineAccount,
+  listPayoutAccountsForReview,
+  reviewPayoutAccount,
+  viewDocument,
+  lineGroupSettings,
+  updateNotificationSettings,
 };
