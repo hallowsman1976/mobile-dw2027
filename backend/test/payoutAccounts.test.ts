@@ -34,6 +34,7 @@ function register(overrides: Record<string, unknown> = {}) {
     bankCode: 'KTB',
     accountNumber: '123-4-56789-0',
     accountName: 'นายสมชาย  ใจดี',
+    branch: 'มุกดาหาร',
     documents: { idCard: JPEG, depositBook: PNG, payoutBook: PDF },
     ...overrides,
   });
@@ -72,7 +73,7 @@ describe('registerPayoutAccount', () => {
     const res = register();
     expect(res).toMatchObject({
       ok: true,
-      data: { bankCode: 'KTB', accountNumber: '1234567890', accountName: 'นายสมชาย ใจดี', status: 'pendingReview' },
+      data: { bankCode: 'KTB', accountNumber: '1234567890', accountName: 'นายสมชาย ใจดี', branch: 'มุกดาหาร', status: 'pendingReview' },
     });
     expect([...world.files.values()].map((f) => [f.category, f.mimeType])).toEqual([
       ['payoutDocuments', 'image/jpeg'],
@@ -95,6 +96,7 @@ describe('registerPayoutAccount', () => {
       [{ bankCode: 'XXX' }, 'ธนาคาร'],
       [{ accountNumber: '12345' }, 'เลขบัญชี'],
       [{ accountName: '  ' }, 'ชื่อบัญชี'],
+      [{ branch: '' }, 'กรุณากรอกสาขา'],
       [{ documents: { idCard: JPEG, depositBook: PNG } }, 'สำเนาบัญชีรับเงิน'],
       [{ documents: { idCard: { ...JPEG, mimeType: 'image/gif' }, depositBook: PNG, payoutBook: PDF } }, 'สำเนาบัตรประชาชนต้องเป็นไฟล์'],
       [{ documents: { idCard: { ...JPEG, contentBase64: 'TVqQAAMAAAAEAAAA' }, depositBook: PNG, payoutBook: PDF } }, 'JPG, PNG, PDF'],

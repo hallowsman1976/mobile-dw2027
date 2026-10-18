@@ -41,6 +41,8 @@ export type FakeWorld = {
   slipReadings: Map<string, SlipReading>;
   /** ตั้งเป็น true เพื่อจำลองว่าสร้าง PDF ไม่สำเร็จ */
   pdfDown: boolean;
+  /** เพิ่มขึ้นทุกครั้งที่สร้างต้นแบบใบถอนเงินใหม่ */
+  templateVersion: number;
   /** fileId ที่ลบไม่ได้ (จำลอง Drive ผิดพลาด) */
   failingDeletes: Set<string>;
   /** จำนวนครั้งที่เรียก SlipOK ปลอม */
@@ -189,7 +191,11 @@ export function createFakeWorld(): FakeWorld {
         files.set(fileId, { category: 'pdfs', fileName, mimeType: 'application/pdf', contentBase64 });
         return fileId;
       },
-      withdrawalTemplateUrl: () => 'https://docs.google.com/document/d/fake-template/edit',
+      withdrawalTemplateUrl: () => `https://docs.google.com/document/d/fake-template-${world.templateVersion}/edit`,
+      resetWithdrawalTemplate: () => {
+        world.templateVersion += 1;
+        return `https://docs.google.com/document/d/fake-template-${world.templateVersion}/edit`;
+      },
       buildSpreadsheet: (fileName, sheets) => ({
         fileName,
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -249,6 +255,7 @@ export function createFakeWorld(): FakeWorld {
     slipCalls: 0,
     pdfDown: false,
     failingDeletes: new Set<string>(),
+    templateVersion: 1,
     cache,
     addBinding: (partial) => {
       const binding: LineBinding = {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bahtText } from '../../shared/format';
-import { JPEG, MEMBER_PIN, PNG, createScene, type Scene } from './helpers';
+import { JPEG, MEMBER_PIN, PDF, PNG, createScene, type Scene } from './helpers';
 
 let scene: Scene;
 
@@ -16,6 +16,7 @@ function approvedWithdrawal(amount = 5000): string {
       amount,
       signature: PNG,
       pin: MEMBER_PIN,
+      contactPhone: '0812345678',
     }),
   );
   scene.staff('reviewRequest', { id, decision: 'approve' }, 'checker');
@@ -37,22 +38,27 @@ beforeEach(() => {
     accountNumber: '1234567890',
     accountName: 'นายสมชาย ใจดี',
     status: 'approved',
-    idCardFileId: 'a',
-    depositBookFileId: 'b',
-    payoutBookFileId: 'c',
+    idCardFileId: 'doc-id',
+    depositBookFileId: 'doc-book',
+    payoutBookFileId: 'doc-payout',
     createdAt: '2026-01-01T00:00:00.000Z',
     reviewedBy: 'admin',
     reviewedAt: '2026-01-01T00:00:00.000Z',
     rejectReason: '',
     retiredAt: '',
     filesPurgedAt: '',
+    branch: 'สาขามุกดาหาร',
   });
+  // สำเนาบัตรเป็น JPEG สมุดสหกรณ์เป็น PNG และสมุดธนาคารเป็น PDF
+  scene.world.files.set('doc-id', { category: 'payoutDocuments', ...JPEG });
+  scene.world.files.set('doc-book', { category: 'payoutDocuments', ...PNG });
+  scene.world.files.set('doc-payout', { category: 'payoutDocuments', ...PDF });
   scene.addStaff('checker', ['reviewer']);
   scene.addStaff('boss', ['approver']);
 });
 
 describe('PDF ใบถอนเงิน', () => {
-  it('สร้างเมื่ออนุมัติ ใส่ข้อมูลคำขอ บัญชีรับเงิน ยอดเป็นตัวอักษร และลายมือชื่อทั้งสองช่อง', () => {
+  it('สร้างเมื่ออนุมัติ ใส่ข้อมูลตามแบบฟอร์มของสหกรณ์ ลายมือชื่อทั้งสองช่อง และสำเนาเอกสารบัญชีรับเงิน', () => {
     const id = approvedWithdrawal(1500.5);
     const request = scene.world.requests.find((r) => r.id === id)!;
     expect(request.pdfFileId).toBe('file-2');
@@ -61,22 +67,33 @@ describe('PDF ใบถอนเงิน', () => {
     const { texts, images } = pdfContent('file-2');
     expect(texts).toEqual({
       requestNumber: 'WD-2026-000001',
-      submittedDate: '5 ม.ค. 2569 09:00',
+      submittedDate: '5 ม.ค. 2569',
       memberCode: '00123',
       accountNumber: '001-1',
       accountName: 'นายสมชาย ใจดี',
       accountType: 'ออมทรัพย์',
+      savingsMark: '●',
+      specialSavingsMark: '○',
       amount: '1,500.50',
       amountText: 'หนึ่งพันห้าร้อยบาทห้าสิบสตางค์',
       payoutBank: 'ธนาคารกรุงไทย',
       payoutAccountNumber: '1234567890',
       payoutAccountName: 'นายสมชาย ใจดี',
+      payoutBranch: 'สาขามุกดาหาร',
+      contactPhone: '081-234-5678',
       processingDate: '5 ม.ค. 2569',
       reviewedBy: 'checker',
       approvedBy: 'boss',
       approvedDate: '5 ม.ค. 2569',
+      payoutBookImage: '(สำเนาบัญชีรับเงินเป็นไฟล์ PDF เปิดดูในระบบ)',
     });
-    expect(images).toEqual({ ownerSignature: PNG.contentBase64, recipientSignature: PNG.contentBase64 });
+    const signature = { mimeType: 'image/png', contentBase64: PNG.contentBase64, maxWidth: 150, maxHeight: 45 };
+    expect(images).toEqual({
+      ownerSignature: signature,
+      recipientSignature: signature,
+      idCardImage: { mimeType: 'image/jpeg', contentBase64: JPEG.contentBase64, maxWidth: 150, maxHeight: 200 },
+      depositBookImage: { mimeType: 'image/png', contentBase64: PNG.contentBase64, maxWidth: 330, maxHeight: 180 },
+    });
 
     expect(scene.staff('getRequest', { id }, 'checker')).toMatchObject({ data: { pdfFileId: 'file-2' } });
     expect(scene.staff('viewDocument', { fileId: 'file-2' }, 'checker')).toMatchObject({ data: { mimeType: 'application/pdf' } });
@@ -107,14 +124,14 @@ describe('PDF ใบถอนเงิน', () => {
     expect(scene.staff('regenerateWithdrawalPdf', { id: deposit })).toMatchObject({ error: { code: 'CONFLICT' } });
 
     const pending = idOf(
-      scene.member('submitWithdrawalRequest', { accountNumber: '002-1', payoutAccountId: 'payout-somchai', amount: 2000, signature: PNG, pin: MEMBER_PIN }),
+      scene.member('submitWithdrawalRequest', { accountNumber: '002-1', payoutAccountId: 'payout-somchai', amount: 2000, signature: PNG, pin: MEMBER_PIN, contactPhone: '0812345678' }),
     );
     expect(scene.staff('regenerateWithdrawalPdf', { id: pending })).toMatchObject({ error: { code: 'CONFLICT' } });
   });
 
   it('ปฏิเสธไม่สร้าง PDF', () => {
     const id = idOf(
-      scene.member('submitWithdrawalRequest', { accountNumber: '001-1', payoutAccountId: 'payout-somchai', amount: 2000, signature: PNG, pin: MEMBER_PIN }),
+      scene.member('submitWithdrawalRequest', { accountNumber: '001-1', payoutAccountId: 'payout-somchai', amount: 2000, signature: PNG, pin: MEMBER_PIN, contactPhone: '0812345678' }),
     );
     scene.staff('reviewRequest', { id, decision: 'approve' }, 'checker');
     scene.staff('approveRequest', { id, decision: 'reject', reason: 'ยอดไม่พอ' }, 'boss');
@@ -124,9 +141,26 @@ describe('PDF ใบถอนเงิน', () => {
   it('ลิงก์ต้นแบบสำหรับผู้ดูแลระบบเท่านั้น', () => {
     expect(scene.staff('withdrawalTemplate')).toEqual({
       ok: true,
-      data: { url: 'https://docs.google.com/document/d/fake-template/edit' },
+      data: { url: 'https://docs.google.com/document/d/fake-template-1/edit' },
     });
     expect(scene.staff('withdrawalTemplate', undefined, 'checker')).toMatchObject({ error: { code: 'FORBIDDEN' } });
+  });
+
+  it('ผู้ดูแลระบบสร้างต้นแบบใหม่ตามแบบฟอร์มของสหกรณ์ได้ และบันทึก audit log', () => {
+    expect(scene.staff('resetWithdrawalTemplate')).toEqual({
+      ok: true,
+      data: { url: 'https://docs.google.com/document/d/fake-template-2/edit' },
+    });
+    expect(scene.staff('withdrawalTemplate')).toMatchObject({ data: { url: expect.stringContaining('fake-template-2') } });
+    expect(scene.world.auditLog).toContainEqual(expect.objectContaining({ actor: 'admin', action: 'resetWithdrawalTemplate' }));
+    expect(scene.staff('resetWithdrawalTemplate', undefined, 'checker')).toMatchObject({ error: { code: 'FORBIDDEN' } });
+  });
+
+  it('สำเนาเอกสารที่หาไม่พบแทนด้วยข้อความ', () => {
+    scene.world.files.delete('doc-id');
+    const id = approvedWithdrawal();
+    const fileId = scene.world.requests.find((r) => r.id === id)!.pdfFileId;
+    expect(pdfContent(fileId).texts.idCardImage).toBe('(ไม่พบสำเนาบัตรประชาชน)');
   });
 });
 

@@ -1,14 +1,21 @@
 // PDF ใบถอนเงินจาก Google Docs ต้นแบบ สร้างเมื่อคำขอถอนเงินได้รับอนุมัติ (ticket 10)
-import { ACCOUNT_TYPE_LABELS, BANKS, type ApiAuth, type StaffRequest } from '../../../shared/api';
-import { bahtText, formatBaht, formatThaiDate, formatThaiDateTimeFromIso } from '../../../shared/format';
-import type { Deps, MemberRequest } from '../adapters/ports';
+import {
+  ACCOUNT_TYPE_LABELS,
+  BANKS,
+  PAYOUT_DOCUMENT_LABELS,
+  type ApiAuth,
+  type PayoutDocumentKind,
+  type StaffRequest,
+} from '../../../shared/api';
+import { bahtText, formatBaht, formatPhone, formatThaiDate } from '../../../shared/format';
+import type { Deps, MemberRequest, TemplateImage } from '../adapters/ports';
 import { bangkokDate } from './businessDays';
 import { AppError } from './errors';
 import { findRequest, toStaff } from './requests';
 import { requireStaff } from './staff';
 import { requirePayload, requireString } from './validate';
 
-/** ตัวแปรที่ใช้ใน Google Docs ต้นแบบ เขียนในเอกสารเป็น {{ชื่อ}} */
+/** ตัวแปรข้อความในต้นแบบ เขียนในเอกสารเป็น {{ชื่อ}} (ตามแบบฟอร์มใบถอนเงินออนไลน์ของสหกรณ์) */
 export const WITHDRAWAL_TEMPLATE_TEXTS = [
   'requestNumber',
   'submittedDate',
@@ -16,17 +23,38 @@ export const WITHDRAWAL_TEMPLATE_TEXTS = [
   'accountNumber',
   'accountName',
   'accountType',
+  /** ● หรือ ○ หน้าช่อง ออมทรัพย์ / ออมทรัพย์พิเศษ */
+  'savingsMark',
+  'specialSavingsMark',
   'amount',
   'amountText',
   'payoutBank',
   'payoutAccountNumber',
   'payoutAccountName',
+  'payoutBranch',
+  'contactPhone',
   'processingDate',
   'reviewedBy',
   'approvedBy',
   'approvedDate',
 ] as const;
-export const WITHDRAWAL_TEMPLATE_IMAGES = ['ownerSignature', 'recipientSignature'] as const;
+
+/** ตัวแปรรูป: ลายมือชื่อ และสำเนาเอกสารของบัญชีรับเงิน (เอกสารที่เป็น PDF แทนด้วยข้อความ) */
+export const WITHDRAWAL_TEMPLATE_IMAGES = [
+  'ownerSignature',
+  'recipientSignature',
+  'idCardImage',
+  'depositBookImage',
+  'payoutBookImage',
+] as const;
+
+const SIGNATURE_SIZE = { maxWidth: 150, maxHeight: 45 };
+const ATTACHMENTS = [
+  { key: 'idCardImage', kind: 'idCard', maxWidth: 150, maxHeight: 200 },
+  { key: 'depositBookImage', kind: 'depositBook', maxWidth: 330, maxHeight: 180 },
+  { key: 'payoutBookImage', kind: 'payoutBook', maxWidth: 330, maxHeight: 180 },
+] as const;
+const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png'];
 
 /**
  * สร้าง PDF แล้วบันทึกรหัสไฟล์ไว้ในคำขอ คืน true ถ้าสำเร็จ
@@ -35,7 +63,8 @@ export const WITHDRAWAL_TEMPLATE_IMAGES = ['ownerSignature', 'recipientSignature
 export function generateWithdrawalPdf(request: MemberRequest, deps: Deps): boolean {
   let fileId: string;
   try {
-    fileId = deps.files.renderWithdrawalPdf(`${request.requestNumber}.pdf`, templateTexts(request, deps), templateImages(request, deps));
+    const { texts, images } = templateContent(request, deps);
+    fileId = deps.files.renderWithdrawalPdf(`${request.requestNumber}.pdf`, texts, images);
   } catch (err) {
     deps.data.appendAuditLog({
       at: deps.clock.now().toISOString(),
@@ -77,39 +106,75 @@ export function regenerateWithdrawalPdf(input: { auth?: ApiAuth; payload?: unkno
   return toStaff(findRequest(request.id, deps), deps);
 }
 
+/** สร้างต้นแบบเริ่มต้นใหม่ตามแบบฟอร์มใบถอนเงินออนไลน์ของสหกรณ์ (ต้นแบบเดิมเก็บไว้แต่เลิกใช้) */
+export function resetWithdrawalTemplate(input: { auth?: ApiAuth }, deps: Deps): { url: string } {
+  const staff = requireStaff(input.auth, deps, 'systemAdministrator');
+  const url = deps.files.resetWithdrawalTemplate();
+  deps.data.appendAuditLog({
+    at: deps.clock.now().toISOString(),
+    actor: staff.username,
+    action: 'resetWithdrawalTemplate',
+    target: 'withdrawalTemplate',
+    detail: '',
+  });
+  return { url };
+}
+
 /** ลิงก์ Google Docs ต้นแบบ ให้ผู้ดูแลระบบแก้รูปแบบ (เปิดได้เฉพาะบัญชี Google ที่เป็นเจ้าของระบบ) */
 export function withdrawalTemplate(input: { auth?: ApiAuth }, deps: Deps): { url: string } {
   requireStaff(input.auth, deps, 'systemAdministrator');
   return { url: deps.files.withdrawalTemplateUrl() };
 }
 
-function templateTexts(request: MemberRequest, deps: Deps): Record<string, string> {
+function templateContent(
+  request: MemberRequest,
+  deps: Deps,
+): { texts: Record<string, string>; images: Record<string, TemplateImage> } {
   const payout = deps.data.listPayoutAccounts().find((p) => p.id === request.payoutAccountId);
-  const texts: Record<(typeof WITHDRAWAL_TEMPLATE_TEXTS)[number], string> = {
+  const texts: Record<string, string> = {
     requestNumber: request.requestNumber,
-    submittedDate: formatThaiDateTimeFromIso(request.submittedAt),
+    submittedDate: formatThaiDate(bangkokDate(new Date(request.submittedAt))),
     memberCode: request.memberCode,
     accountNumber: request.accountNumber,
     accountName: request.accountName,
     accountType: ACCOUNT_TYPE_LABELS[request.accountType],
+    savingsMark: request.accountType === 'savings' ? '●' : '○',
+    specialSavingsMark: request.accountType === 'specialSavings' ? '●' : '○',
     amount: formatBaht(request.amount),
     amountText: bahtText(request.amount),
     payoutBank: BANKS.find((b) => b.code === payout?.bankCode)?.name ?? payout?.bankCode ?? '',
     payoutAccountNumber: payout?.accountNumber ?? '',
     payoutAccountName: payout?.accountName ?? '',
+    payoutBranch: payout?.branch ?? '',
+    contactPhone: formatPhone(request.contactPhone),
     processingDate: formatThaiDate(request.processingDate),
     reviewedBy: staffName(request.reviewedBy, deps),
     approvedBy: staffName(request.approvedBy, deps),
     approvedDate: request.approvedAt ? formatThaiDate(bangkokDate(new Date(request.approvedAt))) : '',
   };
-  return texts;
-}
 
-/** ลายมือชื่อเดียวใช้ทั้งช่องเจ้าของบัญชีและผู้รับเงิน เพราะผู้รับเงินคือเจ้าของบัญชีเอง */
-function templateImages(request: MemberRequest, deps: Deps): Record<string, string> {
+  // ลายมือชื่อเดียวใช้ทั้งช่องเจ้าของบัญชีและผู้รับเงิน เพราะผู้รับเงินคือเจ้าของบัญชีเอง
   const signature = request.signatureFileId ? deps.files.readFile(request.signatureFileId) : null;
   if (!signature) throw new Error(`ไม่พบไฟล์ลายมือชื่อของ ${request.requestNumber}`);
-  return { ownerSignature: signature.contentBase64, recipientSignature: signature.contentBase64 };
+  const signatureImage = { mimeType: signature.mimeType, contentBase64: signature.contentBase64, ...SIGNATURE_SIZE };
+  const images: Record<string, TemplateImage> = { ownerSignature: signatureImage, recipientSignature: signatureImage };
+
+  const fileIds: Record<PayoutDocumentKind, string> = {
+    idCard: payout?.idCardFileId ?? '',
+    depositBook: payout?.depositBookFileId ?? '',
+    payoutBook: payout?.payoutBookFileId ?? '',
+  };
+  for (const { key, kind, maxWidth, maxHeight } of ATTACHMENTS) {
+    const file = fileIds[kind] ? deps.files.readFile(fileIds[kind]) : null;
+    if (file && IMAGE_MIME_TYPES.includes(file.mimeType)) {
+      images[key] = { mimeType: file.mimeType, contentBase64: file.contentBase64, maxWidth, maxHeight };
+    } else {
+      texts[key] = file
+        ? `(${PAYOUT_DOCUMENT_LABELS[kind]}เป็นไฟล์ PDF เปิดดูในระบบ)`
+        : `(ไม่พบ${PAYOUT_DOCUMENT_LABELS[kind]})`;
+    }
+  }
+  return { texts, images };
 }
 
 function staffName(username: string, deps: Deps): string {

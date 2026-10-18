@@ -1,6 +1,6 @@
 import type { DocumentContent } from '../../../../shared/api';
-import type { FileCategory, FileStore, SpreadsheetTab } from '../ports';
-import { ensureWithdrawalTemplate, renderTemplateToPdf } from './withdrawalTemplate';
+import type { FileCategory, FileStore, SpreadsheetTab, TemplateImage } from '../ports';
+import { ensureWithdrawalTemplate, renderTemplateToPdf, replaceWithdrawalTemplate } from './withdrawalTemplate';
 
 const SOURCE_MIME_TYPES: Record<string, string> = {
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -72,7 +72,7 @@ export function createDriveFileStore(): FileStore {
       return created.id;
     },
 
-    renderWithdrawalPdf(fileName: string, texts: Record<string, string>, images: Record<string, string>): string {
+    renderWithdrawalPdf(fileName: string, texts: Record<string, string>, images: Record<string, TemplateImage>): string {
       const drive = requireDrive();
       const templateId = ensureWithdrawalTemplate(drive, rootFolderId());
       const pdf = renderTemplateToPdf(drive, templateId, categoryFolderId('pdfs'), texts, images);
@@ -81,6 +81,10 @@ export function createDriveFileStore(): FileStore {
 
     withdrawalTemplateUrl(): string {
       return `https://docs.google.com/document/d/${ensureWithdrawalTemplate(requireDrive(), rootFolderId())}/edit`;
+    },
+
+    resetWithdrawalTemplate(): string {
+      return `https://docs.google.com/document/d/${replaceWithdrawalTemplate(requireDrive(), rootFolderId())}/edit`;
     },
 
     buildSpreadsheet(fileName: string, tabs: SpreadsheetTab[]): DocumentContent {

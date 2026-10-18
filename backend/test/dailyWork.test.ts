@@ -26,6 +26,7 @@ function withdraw(amount: number, accountNumber = '001-1'): string {
       amount,
       signature: PNG,
       pin: MEMBER_PIN,
+      contactPhone: '0812345678',
     }),
   );
 }
@@ -62,6 +63,7 @@ beforeEach(() => {
     rejectReason: '',
     retiredAt: '',
     filesPurgedAt: '',
+    branch: 'สาขามุกดาหาร',
   });
   scene.addStaff('checker', ['reviewer']);
   scene.addStaff('boss', ['approver']);
@@ -165,7 +167,7 @@ describe('completeRequests', () => {
   it('ปิดแล้วไม่เป็นคำขอค้าง ยื่นคำขอถอนเงินใหม่ในบัญชีเดียวกันได้', () => {
     const id = withdraw(5000);
     approveWithdrawal(id);
-    expect(scene.member('submitWithdrawalRequest', { accountNumber: '001-1', payoutAccountId: 'payout-somchai', amount: 2000, signature: PNG, pin: MEMBER_PIN })).toMatchObject({
+    expect(scene.member('submitWithdrawalRequest', { accountNumber: '001-1', payoutAccountId: 'payout-somchai', amount: 2000, signature: PNG, pin: MEMBER_PIN, contactPhone: '0812345678' })).toMatchObject({
       error: { code: 'CONFLICT' },
     });
     scene.staff('completeRequests', { ids: [id] });

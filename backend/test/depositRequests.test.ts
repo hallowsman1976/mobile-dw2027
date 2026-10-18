@@ -42,6 +42,7 @@ describe('submitDepositRequest', () => {
         rejectReason: '',
         submittedAt: '2026-01-05T02:00:00.000Z',
         processingDate: '2026-01-05',
+        contactPhone: '',
         transferredAt: '2026-01-05T01:45:00.000Z',
       },
     });

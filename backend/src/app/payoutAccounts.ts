@@ -38,6 +38,8 @@ export function registerPayoutAccount(
   }
   const accountName = requireString(payload.accountName, 'ชื่อบัญชี').trim().replace(/\s+/g, ' ');
   if (accountName.length > 100) throw new AppError('VALIDATION', 'ชื่อบัญชียาวเกิน 100 ตัวอักษร');
+  const branch = requireString(payload.branch, 'สาขา').trim().replace(/\s+/g, ' ');
+  if (branch.length > 100) throw new AppError('VALIDATION', 'ชื่อสาขายาวเกิน 100 ตัวอักษร');
 
   const rawDocuments = (payload.documents ?? {}) as Record<string, unknown>;
   const documents = Object.fromEntries(
@@ -90,6 +92,7 @@ export function registerPayoutAccount(
       rejectReason: '',
       retiredAt: '',
       filesPurgedAt: '',
+      branch,
     };
     deps.data.savePayoutAccount(account);
     deps.data.appendAuditLog({
@@ -227,6 +230,7 @@ function toMine(account: PayoutAccount): MyPayoutAccount {
     bankCode: account.bankCode,
     accountNumber: account.accountNumber,
     accountName: account.accountName,
+    branch: account.branch,
     status: account.status,
     rejectReason: account.rejectReason,
     createdAt: account.createdAt,

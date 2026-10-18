@@ -72,6 +72,7 @@ function reviewCard(account: PayoutAccountForReview, show: Show, refresh: () => 
       field('ธนาคาร', bankName),
       field('เลขบัญชี', account.accountNumber),
       field('ชื่อบัญชี', account.accountName),
+      field('สาขา', account.branch || '-'),
       field('ส่งเมื่อ', formatThaiDateTime(account.createdAt)),
     ),
     nameMatches

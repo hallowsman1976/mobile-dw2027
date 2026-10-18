@@ -13,7 +13,7 @@ import {
   type StaffProfile,
   type StaffRequest,
 } from '../../../shared/api';
-import { formatBaht, formatThaiDate, formatThaiDateTimeFromIso } from '../../../shared/format';
+import { formatBaht, formatPhone, formatThaiDate, formatThaiDateTimeFromIso } from '../../../shared/format';
 import { h } from '../../lib/dom';
 import { openDocument } from './documentViewer';
 import { messageArea, showError, staffCall } from './session';
@@ -160,8 +160,10 @@ function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done
     fields.push(
       ['โอนเข้าบัญชี', `${BANKS.find((b) => b.code === payout.bankCode)?.name ?? payout.bankCode} ${payout.accountNumber}`],
       ['ชื่อบัญชีรับเงิน', payout.accountName],
+      ['สาขา', payout.branch || '-'],
     );
   }
+  if (request.contactPhone) fields.push(['โทรศัพท์ติดต่อกลับ', formatPhone(request.contactPhone)]);
   if (request.reviewedBy) fields.push(['ผู้ตรวจ', `${request.reviewedBy} · ${formatThaiDateTimeFromIso(request.reviewedAt)}`]);
   if (request.approvedBy) fields.push(['ผู้อนุมัติ', `${request.approvedBy} · ${formatThaiDateTimeFromIso(request.approvedAt)}`]);
   if (request.rejectedBy) fields.push(['ปฏิเสธโดย', `${request.rejectedBy} · ${request.rejectReason}`]);

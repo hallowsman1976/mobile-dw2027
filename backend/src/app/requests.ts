@@ -289,6 +289,7 @@ export function emptyRequest(): MemberRequest {
     submittedAt: '',
     processingDate: '',
     filesPurgedAt: '',
+    contactPhone: '',
   };
 }
 
@@ -306,6 +307,7 @@ export function toMine(request: MemberRequest): MyRequest {
     submittedAt: request.submittedAt,
     processingDate: request.processingDate,
     transferredAt: request.transferredAt,
+    contactPhone: request.contactPhone,
   };
 }
 
@@ -335,6 +337,7 @@ export function toStaff(request: MemberRequest, deps: Deps): StaffRequest {
           bankCode: payout.bankCode,
           accountNumber: payout.accountNumber,
           accountName: payout.accountName,
+          branch: payout.branch,
           documents: {
             idCard: payout.idCardFileId,
             depositBook: payout.depositBookFileId,

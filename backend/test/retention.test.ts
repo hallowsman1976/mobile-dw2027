@@ -43,6 +43,7 @@ function request(partial: Partial<MemberRequest> & Pick<MemberRequest, 'id' | 's
     submittedAt: '2015-12-01T00:00:00.000Z',
     processingDate: '2015-12-01',
     filesPurgedAt: '',
+    contactPhone: '',
     ...partial,
   });
 }
@@ -62,6 +63,7 @@ function payout(partial: Partial<PayoutAccount> & Pick<PayoutAccount, 'id' | 'st
     rejectReason: '',
     retiredAt: '',
     filesPurgedAt: '',
+    branch: 'สาขามุกดาหาร',
     ...partial,
   });
 }

@@ -28,9 +28,10 @@ export async function renderWithdraw(member: Member): Promise<void> {
     return;
   }
 
-  const [accounts, payouts] = await Promise.all([
+  const [accounts, payouts, history] = await Promise.all([
     memberCall<MyAccount[]>('listMyAccounts'),
     memberCall<MyPayoutAccount[]>('listMyPayoutAccounts'),
+    memberCall<MyRequest[]>('listMyRequests'),
   ]);
   if (!accounts.ok || !payouts.ok) {
     const error = !accounts.ok ? accounts.error : !payouts.ok ? payouts.error : null;
@@ -49,10 +50,17 @@ export async function renderWithdraw(member: Member): Promise<void> {
     );
     return;
   }
-  body.replaceChildren(withdrawForm(accounts.data, approved, messages));
+  // เติมเบอร์โทรจากคำขอถอนเงินครั้งล่าสุดให้ (แก้ได้)
+  const lastPhone = history.ok ? (history.data.find((r) => r.type === 'withdrawal' && r.contactPhone)?.contactPhone ?? '') : '';
+  body.replaceChildren(withdrawForm(accounts.data, approved, lastPhone, messages));
 }
 
-function withdrawForm(accounts: MyAccount[], payouts: MyPayoutAccount[], messages: HTMLElement): HTMLElement {
+function withdrawForm(
+  accounts: MyAccount[],
+  payouts: MyPayoutAccount[],
+  lastPhone: string,
+  messages: HTMLElement,
+): HTMLElement {
   const account = h(
     'select',
     { required: true },
@@ -82,6 +90,14 @@ function withdrawForm(accounts: MyAccount[], payouts: MyPayoutAccount[], message
     required: true,
     placeholder: `${formatBaht(WITHDRAWAL_MIN_AMOUNT)} – ${formatBaht(WITHDRAWAL_MAX_AMOUNT)} บาท`,
   });
+  const phone = h('input', {
+    type: 'tel',
+    inputmode: 'tel',
+    autocomplete: 'tel',
+    required: true,
+    value: lastPhone,
+    placeholder: 'เช่น 081-234-5678',
+  });
   const signature = createSignaturePad();
   const pin = h('input', {
     type: 'password',
@@ -102,7 +118,9 @@ function withdrawForm(accounts: MyAccount[], payouts: MyPayoutAccount[], message
         const problem =
           !Number.isFinite(value) || value < WITHDRAWAL_MIN_AMOUNT || value > WITHDRAWAL_MAX_AMOUNT
             ? `จำนวนเงินต้องอยู่ระหว่าง ${formatBaht(WITHDRAWAL_MIN_AMOUNT)} ถึง ${formatBaht(WITHDRAWAL_MAX_AMOUNT)} บาท`
-            : signature.isEmpty()
+            : !/^0\d{8,9}$/.test(phone.value.replace(/[\s-]/g, ''))
+              ? 'หมายเลขโทรศัพท์ต้องเป็นตัวเลข 9–10 หลัก ขึ้นต้นด้วย 0'
+              : signature.isEmpty()
               ? 'กรุณาเซ็นลายมือชื่อ'
               : '';
         if (problem) {
@@ -119,6 +137,7 @@ function withdrawForm(accounts: MyAccount[], payouts: MyPayoutAccount[], message
           amount: value,
           signature: { fileName: 'signature.png', mimeType: 'image/png', contentBase64: signature.toPngBase64() },
           pin: pin.value,
+          contactPhone: phone.value,
         });
         submit.disabled = false;
         submit.textContent = 'ยืนยันถอนเงิน';
@@ -137,6 +156,8 @@ function withdrawForm(accounts: MyAccount[], payouts: MyPayoutAccount[], message
     accountInfo,
     h('label', {}, 'โอนเข้าบัญชีรับเงิน', payout),
     h('label', {}, 'จำนวนเงิน (บาท)', amount),
+    h('label', {}, 'หมายเลขโทรศัพท์ติดต่อกลับ', phone),
+    h('p', { class: 'hint' }, 'เจ้าหน้าที่อาจโทรสอบทานข้อมูลก่อนโอนเงิน'),
     h('div', {}, h('div', { class: 'field-title' }, 'ลายมือชื่อเจ้าของบัญชีและผู้รับเงิน'), signature.element),
     h('label', {}, `PIN ${PIN_LENGTH} หลัก`, pin),
     submit,

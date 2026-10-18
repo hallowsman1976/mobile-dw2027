@@ -21,6 +21,7 @@ function payoutAccount(partial: Partial<PayoutAccount>): PayoutAccount {
     rejectReason: '',
     retiredAt: '',
     filesPurgedAt: '',
+    branch: 'สาขามุกดาหาร',
     ...partial,
   };
 }
@@ -28,7 +29,7 @@ function payoutAccount(partial: Partial<PayoutAccount>): PayoutAccount {
 function withdraw(overrides: Record<string, unknown> = {}, token?: string) {
   return scene.member(
     'submitWithdrawalRequest',
-    { accountNumber: '001-1', payoutAccountId: 'payout-somchai', amount: 5000, signature: PNG, pin: MEMBER_PIN, ...overrides },
+    { accountNumber: '001-1', payoutAccountId: 'payout-somchai', amount: 5000, signature: PNG, pin: MEMBER_PIN, contactPhone: '081-234-5678', ...overrides },
     token,
   );
 }
@@ -62,7 +63,11 @@ describe('submitWithdrawalRequest', () => {
         processingDate: '2026-01-05',
       },
     });
-    expect(scene.world.requests[0]).toMatchObject({ payoutAccountId: 'payout-somchai', signatureFileId: 'file-1' });
+    expect(scene.world.requests[0]).toMatchObject({
+      payoutAccountId: 'payout-somchai',
+      signatureFileId: 'file-1',
+      contactPhone: '0812345678',
+    });
     expect([...scene.world.files.values()]).toEqual([
       { category: 'signatures', fileName: 'WD-2026-000001.png', mimeType: 'image/png', contentBase64: PNG.contentBase64 },
     ]);
@@ -80,6 +85,9 @@ describe('submitWithdrawalRequest', () => {
       [{ payoutAccountId: 'nope' }, 'ได้รับอนุมัติแล้ว'],
       [{ signature: undefined }, 'กรุณาแนบลายมือชื่อ'],
       [{ signature: JPEG }, 'ต้องเป็นไฟล์ PNG'],
+      [{ contactPhone: '' }, 'กรุณากรอกหมายเลขโทรศัพท์ติดต่อกลับ'],
+      [{ contactPhone: '12345' }, '9–10 หลัก'],
+      [{ contactPhone: '1812345678' }, 'ขึ้นต้นด้วย 0'],
     ];
     for (const [overrides, message] of cases) {
       expect(withdraw(overrides)).toMatchObject({ error: { code: 'VALIDATION', message: expect.stringContaining(message) } });

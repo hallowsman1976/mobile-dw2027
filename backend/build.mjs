@@ -28,6 +28,8 @@ await build({
   format: 'iife',
   globalName: 'App',
   target: 'es2019',
+  // ตราสหกรณ์ในต้นแบบใบถอนเงิน
+  loader: { '.jpg': 'base64' },
   charset: 'utf8',
   footer: {
     js: globals.map((name) => `function ${name}(e) { return App.${name}(e); }`).join('\n'),

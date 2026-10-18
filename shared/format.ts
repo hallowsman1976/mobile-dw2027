@@ -46,6 +46,13 @@ export function formatThaiDate(ymd: string): string {
 }
 
 /** เวลา ISO → "6 ม.ค. 2569 14:05" ตามเวลาไทย */
+/** 0812345678 → 081-234-5678, 042633587 → 042-633587 */
+export function formatPhone(digits: string): string {
+  if (/^0\d{9}$/.test(digits)) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (/^0\d{8}$/.test(digits)) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return digits;
+}
+
 export function formatThaiDateTimeFromIso(iso: string): string {
   const time = Date.parse(iso);
   if (Number.isNaN(time)) return iso;

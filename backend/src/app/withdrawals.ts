@@ -48,6 +48,7 @@ export function submitWithdrawalRequest(input: { auth?: ApiAuth; payload?: unkno
   }
   const signature = validateUpload(payload.signature, 'ลายมือชื่อ', ['image/png'], SIGNATURE_MAX_BYTES);
   const pin = typeof payload.pin === 'string' ? payload.pin : '';
+  const contactPhone = validatePhone(payload.contactPhone);
 
   const request = deps.data.withLock(() => {
     checkMemberPin(binding.id, binding.memberCode, pin, deps);
@@ -79,6 +80,7 @@ export function submitWithdrawalRequest(input: { auth?: ApiAuth; payload?: unkno
       amount,
       payoutAccountId: payout.id,
       signatureFileId,
+      contactPhone,
       status: 'pendingReview',
       submittedAt: now.toISOString(),
       processingDate: processingDateFor(now, deps),
@@ -122,4 +124,13 @@ export function approveRequest(input: { auth?: ApiAuth; payload?: unknown }, dep
   if (updated.status === 'approved') generateWithdrawalPdf(updated, deps);
   notifyStatusChanged(updated, deps);
   return toStaff(findRequest(updated.id, deps), deps);
+}
+
+/** เบอร์โทรศัพท์ไทย 9–10 หลักขึ้นต้นด้วย 0 คืนเป็นตัวเลขล้วน */
+function validatePhone(value: unknown): string {
+  const digits = requireString(value, 'หมายเลขโทรศัพท์ติดต่อกลับ').replace(/[\s-]/g, '');
+  if (!/^0\d{8,9}$/.test(digits)) {
+    throw new AppError('VALIDATION', 'หมายเลขโทรศัพท์ต้องเป็นตัวเลข 9–10 หลัก ขึ้นต้นด้วย 0');
+  }
+  return digits;
 }

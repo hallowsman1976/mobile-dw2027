@@ -220,6 +220,8 @@ export type RegisterPayoutAccountPayload = {
   bankCode: string;
   accountNumber: string;
   accountName: string;
+  /** สาขาของธนาคาร */
+  branch: string;
   documents: Record<PayoutDocumentKind, UploadedFile>;
 };
 
@@ -228,6 +230,8 @@ export type MyPayoutAccount = {
   bankCode: string;
   accountNumber: string;
   accountName: string;
+  /** '' สำหรับบัญชีที่ลงทะเบียนก่อนมีช่องสาขา */
+  branch: string;
   status: PayoutAccountStatus;
   rejectReason: string;
   createdAt: string;
@@ -314,6 +318,8 @@ export type SubmitWithdrawalPayload = {
   /** ลายมือชื่อที่วาดบนจอ เป็น PNG ใช้เป็นทั้งลายมือชื่อเจ้าของบัญชีและผู้รับเงิน */
   signature: UploadedFile;
   pin: string;
+  /** หมายเลขโทรศัพท์ที่เจ้าหน้าที่โทรกลับเพื่อสอบทานคำขอ */
+  contactPhone: string;
 };
 
 /** คำขอตามที่สมาชิกเห็น */
@@ -331,6 +337,8 @@ export type MyRequest = {
   /** วันทำการที่จะดำเนินการ YYYY-MM-DD */
   processingDate: string;
   transferredAt: string;
+  /** เฉพาะคำขอถอนเงิน ตัวเลขล้วน */
+  contactPhone: string;
 };
 
 /** คำขอตามที่เจ้าหน้าที่เห็น */
@@ -356,6 +364,7 @@ export type StaffRequest = MyRequest & {
     bankCode: string;
     accountNumber: string;
     accountName: string;
+    branch: string;
     documents: Record<PayoutDocumentKind, string>;
   };
 };
@@ -461,6 +470,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   completeRequest: 'ปิดคำขอ (เสร็จสิ้น)',
   exportApproved: 'export รายการที่อนุมัติ',
   generatePdf: 'สร้าง PDF ใบถอนเงิน',
+  resetWithdrawalTemplate: 'สร้างต้นแบบใบถอนเงินใหม่',
   pdfFailed: 'สร้าง PDF ไม่สำเร็จ',
   notifyFailed: 'ส่งข้อความ LINE ไม่สำเร็จ',
   addHoliday: 'เพิ่มวันหยุด',

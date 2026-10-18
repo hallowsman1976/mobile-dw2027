@@ -18,7 +18,7 @@ import {
 import { changePin } from './pin';
 import { systemReadiness } from './readiness';
 import { checkSlip } from './slips';
-import { regenerateWithdrawalPdf, withdrawalTemplate } from './withdrawalPdf';
+import { regenerateWithdrawalPdf, resetWithdrawalTemplate, withdrawalTemplate } from './withdrawalPdf';
 import { approveRequest, submitWithdrawalRequest } from './withdrawals';
 import {
   cancelRequest,
@@ -88,6 +88,7 @@ export const actions: Record<string, ActionHandler> = {
   approveRequest,
   regenerateWithdrawalPdf,
   withdrawalTemplate,
+  resetWithdrawalTemplate,
   exportApproved,
   completeRequests,
   listHolidays,

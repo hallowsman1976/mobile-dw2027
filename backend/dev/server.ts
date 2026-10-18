@@ -61,7 +61,7 @@ world.deps.slips.read = (imageBase64) => {
 world.deps.files.renderWithdrawalPdf = (fileName, texts) => {
   const lines = [
     'DEV PDF - the real system renders the Google Docs template in Thai',
-    ...['requestNumber', 'memberCode', 'accountNumber', 'amount', 'payoutAccountNumber', 'processingDate'].map(
+    ...['requestNumber', 'memberCode', 'accountNumber', 'amount', 'payoutAccountNumber', 'payoutBranch', 'contactPhone', 'processingDate'].map(
       (key) => `${key}: ${texts[key] ?? ''}`,
     ),
   ];

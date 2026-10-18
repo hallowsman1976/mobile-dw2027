@@ -69,7 +69,7 @@ function accountCard(account: MyPayoutAccount, messages: HTMLElement, refresh: (
     { class: 'account' },
     h('div', { class: 'number' }, account.accountNumber),
     h('div', {}, account.accountName),
-    h('div', { class: 'meta' }, bankName),
+    h('div', { class: 'meta' }, account.branch ? `${bankName} สาขา${account.branch}` : bankName),
     h('span', { class: `badge status-${account.status}` }, PAYOUT_ACCOUNT_STATUS_LABELS[account.status]),
     account.status === 'pendingReview' ? h('p', { class: 'hint' }, 'รอเจ้าหน้าที่ตรวจเอกสาร จะแจ้งผลทาง LINE') : null,
     account.status === 'rejected' ? h('p', { class: 'hint' }, `เหตุผล: ${account.rejectReason}`) : null,
@@ -86,6 +86,7 @@ function registerForm(member: Member, messages: HTMLElement, refresh: () => Prom
   );
   const accountNumber = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', required: true });
   const accountName = h('input', { type: 'text', autocomplete: 'off', required: true, value: member.memberName });
+  const branch = h('input', { type: 'text', autocomplete: 'off', required: true, placeholder: 'เช่น มุกดาหาร' });
   const fileInputs = Object.fromEntries(
     DOCUMENT_KINDS.map((kind) => [kind, h('input', { type: 'file', accept: 'image/*,application/pdf', required: true })]),
   ) as Record<PayoutDocumentKind, HTMLInputElement>;
@@ -113,6 +114,7 @@ function registerForm(member: Member, messages: HTMLElement, refresh: () => Prom
             bankCode: bank.value,
             accountNumber: accountNumber.value,
             accountName: accountName.value,
+            branch: branch.value,
             documents,
           });
           if (!res.ok) throw new Error(res.error.message);
@@ -134,6 +136,7 @@ function registerForm(member: Member, messages: HTMLElement, refresh: () => Prom
     h('label', {}, 'ธนาคาร', bank),
     h('label', {}, 'เลขบัญชี', accountNumber),
     h('label', {}, 'ชื่อบัญชี', accountName),
+    h('label', {}, 'สาขา', branch),
     ...DOCUMENT_KINDS.map((kind) => h('label', {}, PAYOUT_DOCUMENT_LABELS[kind], fileInputs[kind])),
     h('p', { class: 'hint' }, 'ถ่ายรูปหรือเลือกไฟล์ JPG, PNG หรือ PDF ไม่เกิน 5MB ต่อไฟล์'),
     submit,

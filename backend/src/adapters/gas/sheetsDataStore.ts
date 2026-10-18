@@ -77,6 +77,7 @@ const PAYOUT_COLUMNS = [
   'rejectReason',
   'retiredAt',
   'filesPurgedAt',
+  'branch',
 ] as const;
 
 const SETTING_COLUMNS = ['key', 'value'] as const;
@@ -114,6 +115,7 @@ const REQUEST_COLUMNS = [
   'submittedAt',
   'processingDate',
   'filesPurgedAt',
+  'contactPhone',
 ] as const;
 
 const HOLIDAY_COLUMNS = ['date', 'name'] as const;

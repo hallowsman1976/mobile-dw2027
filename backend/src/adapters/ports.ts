@@ -92,6 +92,8 @@ export type PayoutAccount = {
   retiredAt: string;
   /** เวลาที่ลบไฟล์เอกสารเพราะครบระยะเวลาเก็บ '' ถ้ายังไม่ลบ */
   filesPurgedAt: string;
+  /** สาขาของธนาคาร '' สำหรับบัญชีที่ลงทะเบียนก่อนมีช่องนี้ */
+  branch: string;
 };
 
 /** คำขอฝากหรือถอนเงิน ชื่อและประเภทบัญชีบันทึกไว้ ณ เวลายื่น */
@@ -129,6 +131,8 @@ export type MemberRequest = {
   processingDate: string;
   /** เวลาที่ลบไฟล์ (สลิป ลายมือชื่อ PDF) เพราะครบระยะเวลาเก็บ '' ถ้ายังไม่ลบ */
   filesPurgedAt: string;
+  /** ถอนเงิน: หมายเลขโทรศัพท์ติดต่อกลับ ตัวเลขล้วน */
+  contactPhone: string;
 };
 
 /** หมวดของไฟล์ แต่ละหมวดเป็นโฟลเดอร์ย่อยใน Drive */
@@ -223,13 +227,18 @@ export interface FileStore {
    * สร้าง PDF ใบถอนเงินจาก Google Docs ต้นแบบ: แทน {{ชื่อตัวแปร}} ด้วยข้อความ และ {{ชื่อรูป}} ด้วยรูป PNG
    * บันทึก PDF ในหมวด pdfs แล้วคืน fileId
    */
-  renderWithdrawalPdf(fileName: string, texts: Record<string, string>, images: Record<string, string>): string;
+  renderWithdrawalPdf(fileName: string, texts: Record<string, string>, images: Record<string, TemplateImage>): string;
   /** ลิงก์แก้ไข Google Docs ต้นแบบใบถอนเงิน (สร้างต้นแบบชั่วคราวให้ถ้ายังไม่มี) */
   withdrawalTemplateUrl(): string;
+  /** สร้างต้นแบบเริ่มต้นใหม่ (ตามแบบฟอร์มของสหกรณ์) แทนของเดิมที่เปลี่ยนชื่อเป็นเลิกใช้ คืนลิงก์แก้ไข */
+  resetWithdrawalTemplate(): string;
 
   /** สร้างไฟล์ .xlsx ชั่วคราวจากตารางหลายแท็บ คืนเนื้อไฟล์ ไม่เก็บไฟล์ไว้ใน Drive */
   buildSpreadsheet(fileName: string, sheets: SpreadsheetTab[]): DocumentContent;
 }
+
+/** รูปที่แทนตัวแปรในต้นแบบ ปรับขนาดให้กว้างไม่เกิน maxWidth และสูงไม่เกิน maxHeight (point) */
+export type TemplateImage = { mimeType: string; contentBase64: string; maxWidth: number; maxHeight: number };
 
 export type SpreadsheetTab = { name: string; rows: (string | number)[][] };
 
