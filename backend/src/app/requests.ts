@@ -1,9 +1,7 @@
 // คำขอฝากเงิน และส่วนที่คำขอทุกประเภทใช้ร่วมกัน: ลำดับสถานะ ประวัติ การตรวจ (ticket 07)
 import {
   DEPOSIT_MIN_AMOUNT,
-  DOCUMENT_MAX_BYTES,
   REQUEST_TYPE_LABELS,
-  SLIP_MIME_TYPES,
   type ApiAuth,
   type ListRequestsPayload,
   type MyRequest,
@@ -18,11 +16,10 @@ import { AppError } from './errors';
 import { memberName, requireMember } from './members';
 import { notifyMember, notifyStaffGroup } from './notify';
 import { requireStaff } from './staff';
-import { validateUpload } from './uploads';
+import { assessSlip, mismatchError, parseTransferredAt, readSlip, validateSlip } from './slips';
 import { requirePayload, requireString } from './validate';
 
 const MAX_AMOUNT = 10_000_000;
-const CLOCK_SKEW_MS = 5 * 60_000;
 const MY_REQUESTS_LIMIT = 50;
 const REQUEST_NUMBER_PREFIX: Record<RequestType, string> = { deposit: 'DP', withdrawal: 'WD' };
 
@@ -34,15 +31,15 @@ export function submitDepositRequest(input: { auth?: ApiAuth; payload?: unknown 
   const account = requireOwnAccount(binding.memberCode, payload.accountNumber, deps);
   const amount = validateAmount(payload.amount, DEPOSIT_MIN_AMOUNT);
 
-  const transferredAt = Date.parse(requireString(payload.transferredAt, 'วันเวลาที่โอน'));
-  if (Number.isNaN(transferredAt)) throw new AppError('VALIDATION', 'วันเวลาที่โอนไม่ถูกต้อง');
   const now = deps.clock.now();
-  if (transferredAt > now.getTime() + CLOCK_SKEW_MS) {
-    throw new AppError('VALIDATION', 'วันเวลาที่โอนต้องไม่อยู่ในอนาคต');
-  }
-  const slip = validateUpload(payload.slip, 'สลิปการโอนเงิน', SLIP_MIME_TYPES, DOCUMENT_MAX_BYTES);
+  const transferredAt = parseTransferredAt(payload.transferredAt, now);
+  const slip = validateSlip(payload.slip);
+  // เรียก SlipOK นอก lock (ช้า) ส่วนการตรวจสลิปซ้ำทำใน lock
+  const reading = readSlip(slip, deps);
 
   const request = deps.data.withLock(() => {
+    const assessment = assessSlip(reading, amount, transferredAt, deps);
+    if (assessment.kind === 'mismatch') throw mismatchError(assessment.reading);
     const requestNumber = nextRequestNumber('deposit', now, deps);
     const slipFileId = deps.files.saveFile(
       'slips',
@@ -62,7 +59,8 @@ export function submitDepositRequest(input: { auth?: ApiAuth; payload?: unknown 
       amount,
       slipFileId,
       transferredAt: new Date(transferredAt).toISOString(),
-      slipCheck: 'notChecked',
+      slipCheck: assessment.kind === 'valid' ? 'valid' : 'notChecked',
+      slipRef: assessment.kind === 'valid' ? assessment.reading.transRef : '',
       status: 'pendingReview',
       submittedAt: now.toISOString(),
       processingDate: processingDateFor(now, deps),
@@ -319,6 +317,7 @@ export function toStaff(request: MemberRequest, deps: Deps): StaffRequest {
     memberCode: request.memberCode,
     slipFileId: request.slipFileId,
     slipCheck: request.slipCheck,
+    slipRef: request.slipRef,
     reviewedBy: request.reviewedBy,
     reviewedAt: request.reviewedAt,
     approvedBy: request.approvedBy,

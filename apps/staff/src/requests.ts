@@ -111,7 +111,14 @@ function requestTable(requests: StaffRequest[], onOpen: (request: StaffRequest) 
           'tr',
           { class: 'clickable', onClick: () => onOpen(request) },
           h('td', {}, h('a', { href: '#', onClick: (e) => e.preventDefault() }, request.requestNumber)),
-          h('td', {}, REQUEST_TYPE_LABELS[request.type]),
+          h(
+            'td',
+            {},
+            REQUEST_TYPE_LABELS[request.type],
+            request.type === 'deposit'
+              ? h('span', { class: request.slipCheck === 'valid' ? 'badge' : 'badge warn' }, SLIP_CHECK_LABELS[request.slipCheck])
+              : null,
+          ),
           h('td', {}, request.memberCode),
           h('td', { class: 'num' }, formatBaht(request.amount)),
           h('td', {}, formatThaiDateTimeFromIso(request.submittedAt)),
@@ -147,6 +154,7 @@ function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done
   ];
   if (request.type === 'deposit') {
     fields.push(['โอนเมื่อ', formatThaiDateTimeFromIso(request.transferredAt)], ['ผลตรวจสลิป', SLIP_CHECK_LABELS[request.slipCheck]]);
+    if (request.slipRef) fields.push(['เลขอ้างอิงสลิป', request.slipRef]);
   }
   if (payout) {
     fields.push(
@@ -173,7 +181,7 @@ function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done
       ...fields.map(([label, value]) => h('div', {}, h('div', { class: 'field-label' }, label), h('div', {}, value))),
     ),
     request.type === 'deposit' && request.slipCheck !== 'valid'
-      ? h('p', { class: 'warn-text' }, 'ยังไม่ได้ตรวจสลิปอัตโนมัติ ตรวจยอด เวลา และบัญชีผู้รับในสลิปให้ตรงกับคำขอ')
+      ? h('p', { class: 'warn-text' }, 'ตรวจสลิปอัตโนมัติไม่ได้ (SlipOK อ่านไม่ได้หรือไม่ตอบ) ตรวจยอด เวลา บัญชีผู้รับ และว่าสลิปไม่เคยใช้แจ้งฝากมาก่อน')
       : null,
     documentButtons(request, show),
     request.type === 'withdrawal' && (canReview || isApprover)

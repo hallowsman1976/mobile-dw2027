@@ -6,6 +6,7 @@ import { createGasLineIdentity } from './adapters/gas/lineIdentity';
 import { createLineMessenger } from './adapters/gas/lineMessenger';
 import { gasRandom } from './adapters/gas/random';
 import { createSheetsDataStore } from './adapters/gas/sheetsDataStore';
+import { createSlipOkVerifier } from './adapters/gas/slipOk';
 import { handleRequestBody } from './app/handle';
 import { handleLineWebhook, isLineWebhookBody } from './app/lineGroups';
 import { bootstrapFirstAdministrator } from './app/staff';
@@ -25,7 +26,12 @@ function buildDeps(): Deps {
       verifyIdToken: (idToken) =>
         createGasLineIdentity(requireProperty('LINE_LOGIN_CHANNEL_ID')).verifyIdToken(idToken),
     },
-    slips: {},
+    slips: createSlipOkVerifier(() => {
+      const props = PropertiesService.getScriptProperties();
+      const apiKey = props.getProperty('SLIPOK_API_KEY');
+      const branchId = props.getProperty('SLIPOK_BRANCH_ID');
+      return apiKey && branchId ? { apiKey, branchId } : null;
+    }),
     messenger: createLineMessenger(() => requireProperty('LINE_CHANNEL_ACCESS_TOKEN')),
     clock: gasClock,
     random: gasRandom,

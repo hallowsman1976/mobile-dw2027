@@ -5,6 +5,7 @@ import 'flatpickr/dist/flatpickr.min.css';
 import {
   ACCOUNT_TYPE_LABELS,
   DEPOSIT_MIN_AMOUNT,
+  type CheckSlipResult,
   type MyAccount,
   type MyRequest,
 } from '../../../shared/api';
@@ -80,18 +81,28 @@ function depositForm(accounts: MyAccount[], messages: HTMLElement): HTMLElement 
         const value = Number(amount.value.replace(/,/g, ''));
         if (!when || !file) return;
         submit.disabled = true;
-        submit.textContent = 'กำลังส่ง…';
+        submit.textContent = 'กำลังตรวจสลิป…';
         try {
           const prepared = await prepareUpload(file);
           if (typeof prepared === 'string') throw new Error(prepared);
-          const res = await memberCall<MyRequest>('submitDepositRequest', {
-            accountNumber: account.value,
-            amount: value,
-            transferredAt: when.toISOString(),
-            slip: prepared,
-          });
+          const request = { amount: value, transferredAt: when.toISOString(), slip: prepared };
+
+          const checked = await memberCall<CheckSlipResult>('checkSlip', request);
+          if (!checked.ok) throw new Error(checked.error.message);
+          if (checked.data.status === 'mismatch') {
+            const { slipAmount, slipTransferredAt } = checked.data;
+            const useSlip = await confirmSlipValues(messages, slipAmount, slipTransferredAt);
+            if (!useSlip) return;
+            request.amount = slipAmount;
+            request.transferredAt = slipTransferredAt;
+            amount.value = formatBaht(slipAmount);
+            picker.setDate(new Date(slipTransferredAt), false);
+          }
+
+          submit.textContent = 'กำลังส่ง…';
+          const res = await memberCall<MyRequest>('submitDepositRequest', { accountNumber: account.value, ...request });
           if (!res.ok) throw new Error(res.error.message);
-          form.replaceWith(receipt(res.data));
+          form.replaceWith(receipt(res.data, checked.data.status !== 'unverified'));
           messages.replaceChildren();
         } catch (err) {
           messages.replaceChildren(notice(err instanceof Error ? err.message : 'ส่งไม่สำเร็จ', true));
@@ -113,7 +124,29 @@ function depositForm(accounts: MyAccount[], messages: HTMLElement): HTMLElement 
   return form;
 }
 
-function receipt(request: MyRequest): HTMLElement {
+/** แสดงค่าจากสลิปที่ต่างจากที่กรอก ให้สมาชิกเลือกใช้ค่าจากสลิปหรือกลับไปแก้ */
+function confirmSlipValues(messages: HTMLElement, slipAmount: number, slipTransferredAt: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const choose = (useSlip: boolean) => {
+      messages.replaceChildren();
+      resolve(useSlip);
+    };
+    messages.replaceChildren(
+      h(
+        'div',
+        { class: 'notice warn' },
+        h('p', { style: 'margin: 0 0 6px' }, 'ยอดเงินหรือเวลาที่กรอกไม่ตรงกับสลิป ข้อมูลในสลิปคือ'),
+        h('div', { class: 'status-row' }, h('span', {}, 'จำนวนเงิน'), h('strong', {}, `${formatBaht(slipAmount)} บาท`)),
+        h('div', { class: 'status-row' }, h('span', {}, 'เวลาที่โอน'), h('strong', {}, formatThaiDateTimeFromIso(slipTransferredAt))),
+        h('button', { type: 'button', onClick: () => choose(true) }, 'ใช้ข้อมูลจากสลิปและส่งคำขอ'),
+        h('button', { type: 'button', class: 'secondary', onClick: () => choose(false) }, 'กลับไปแก้ไข'),
+      ),
+    );
+    messages.scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+function receipt(request: MyRequest, slipVerified: boolean): HTMLElement {
   return h(
     'div',
     {},
@@ -126,7 +159,13 @@ function receipt(request: MyRequest): HTMLElement {
       h('span', {}, 'วันทำการที่ดำเนินการ'),
       h('span', {}, formatThaiDate(request.processingDate)),
     ),
-    h('p', { class: 'hint' }, 'จะแจ้งผลทาง LINE ดูสถานะได้ที่เมนูประวัติคำขอ'),
+    h(
+      'p',
+      { class: 'hint' },
+      slipVerified
+        ? 'ตรวจสลิปแล้วถูกต้อง จะแจ้งผลทาง LINE ดูสถานะได้ที่เมนูประวัติคำขอ'
+        : 'เจ้าหน้าที่จะตรวจสลิปและแจ้งผลทาง LINE ดูสถานะได้ที่เมนูประวัติคำขอ',
+    ),
     h('a', { href: '?page=history', 'data-nav': 'history', class: 'link-button' }, 'ดูประวัติคำขอ'),
   );
 }

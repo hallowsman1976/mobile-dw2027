@@ -1,5 +1,6 @@
 // หลังบ้านจำลองสำหรับพัฒนาหน้าบ้านบนเครื่อง: ใช้ตัวรับคำสั่งตัวจริงกับตัวกลางปลอมในหน่วยความจำ
 // ข้อมูลหายเมื่อปิดเซิร์ฟเวอร์ ห้ามใช้กับข้อมูลจริง
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createFakeWorld } from '../src/adapters/fake';
 import { handleRequestBody } from '../src/app/handle';
@@ -40,6 +41,22 @@ world.staff.get('admin')!.roles = ['reviewer', 'approver', 'systemAdministrator'
 const devGroupId = `C${'0'.repeat(32)}`;
 world.lineGroups.push({ groupId: devGroupId, groupName: 'เจ้าหน้าที่สหกรณ์ (ทดลอง)', joinedAt: new Date().toISOString() });
 world.deps.messenger.pushText = (to, text) => console.log(`[LINE → ${to}]\n${text}\n`);
+// SlipOK จำลอง: ทุกสลิปคือการโอน 1,500 บาทเข้าบัญชีสหกรณ์ 987-6-54321-0 เมื่อ 10 นาทีก่อนอัปโหลดครั้งแรก
+// สลิปไฟล์เดียวกันได้เลขอ้างอิงเดียวกัน จึงทดลองสลิปซ้ำได้
+world.settings.set('coopReceivingAccount', '9876543210');
+const devSlipTimes = new Map<string, string>();
+world.deps.slips.read = (imageBase64) => {
+  const transRef = `DEV${createHash('sha256').update(imageBase64).digest('hex').slice(0, 12).toUpperCase()}`;
+  if (!devSlipTimes.has(transRef)) devSlipTimes.set(transRef, new Date(Date.now() - 10 * 60_000).toISOString());
+  return {
+    transRef,
+    transferredAt: devSlipTimes.get(transRef)!,
+    amount: 1500,
+    receiverBankCode: '006',
+    receiverAccount: 'xxx-x-x4321-x',
+    receiverName: 'สหกรณ์ออมทรัพย์สาธารณสุขจังหวัดมุกดาหาร จำกัด',
+  };
+};
 // หลังบ้านจริงสร้าง .xlsx ผ่าน Google Sheets ส่วนตัวจำลองสร้าง .csv ที่รวมทุกแท็บแทน
 world.deps.files.buildSpreadsheet = (fileName, sheets) => {
   const csv = sheets

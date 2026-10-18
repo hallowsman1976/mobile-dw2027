@@ -149,6 +149,10 @@ export interface DataStore {
   /** เพิ่มหรือแทนที่ตาม id */
   saveBinding(binding: LineBinding): void;
 
+  /** cache ชั่วคราว หมดอายุเองหลัง ttlSeconds คืน null ถ้าไม่มี */
+  getCache(key: string): string | null;
+  putCache(key: string, value: string, ttlSeconds: number): void;
+
   /** ตัวนับชั่วคราว หมดอายุเองหลัง ttlSeconds */
   getBindingThrottle(lineUserId: string): BindingThrottle | null;
   putBindingThrottle(lineUserId: string, throttle: BindingThrottle, ttlSeconds: number): void;
@@ -217,8 +221,24 @@ export interface LineIdentity {
   verifyIdToken(idToken: string): LineUser | null;
 }
 
-/** ตัวตรวจสลิป (SlipOK) — ใช้ตั้งแต่ ticket 08 */
-export interface SlipVerifier {}
+/** ข้อมูลที่อ่านได้จาก QR ของสลิป */
+export type SlipReading = {
+  /** เลขอ้างอิงธุรกรรม ไม่ซ้ำกันในแต่ละสลิป */
+  transRef: string;
+  /** ISO */
+  transferredAt: string;
+  amount: number;
+  /** รหัสธนาคารผู้รับ เช่น 006 = กรุงไทย */
+  receiverBankCode: string;
+  /** เลขบัญชีผู้รับแบบที่ธนาคารปิดบางหลัก เช่น xxx-x-x5678-x */
+  receiverAccount: string;
+  receiverName: string;
+};
+
+/** ตัวตรวจสลิป (SlipOK) คืน null ถ้าตรวจไม่ได้ (บริการล่ม อ่าน QR ไม่ได้ หรือยังไม่ได้ตั้งค่า) */
+export interface SlipVerifier {
+  read(imageBase64: string, mimeType: string): SlipReading | null;
+}
 
 /** ตัวส่งข้อความ LINE (Messaging API) */
 export interface Messenger {

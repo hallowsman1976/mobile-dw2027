@@ -15,6 +15,7 @@ import {
   reviewPayoutAccount,
 } from './payoutAccounts';
 import { changePin } from './pin';
+import { checkSlip } from './slips';
 import { approveRequest, submitWithdrawalRequest } from './withdrawals';
 import {
   cancelRequest,
@@ -55,6 +56,7 @@ export const actions: Record<string, ActionHandler> = {
   registerPayoutAccount,
   listMyPayoutAccounts,
   retirePayoutAccount,
+  checkSlip,
   submitDepositRequest,
   submitWithdrawalRequest,
   listMyRequests,

@@ -213,6 +213,15 @@ button.small {
   color: var(--primary);
 }
 
+.notice.warn {
+  background: #fff3e0;
+  color: var(--text);
+}
+
+.notice.warn button {
+  margin-top: 10px;
+}
+
 .notice.error {
   background: #fbeaea;
   color: var(--danger);

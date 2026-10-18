@@ -282,6 +282,17 @@ export const SLIP_CHECK_LABELS: Record<SlipCheck, string> = {
 };
 
 export const DEPOSIT_MIN_AMOUNT = 100;
+
+/** ตรวจสลิปก่อนยื่นคำขอฝากเงิน */
+export type CheckSlipPayload = { slip: UploadedFile; amount: number; transferredAt: string };
+
+export type CheckSlipResult =
+  /** สลิปถูกต้องตรงกับที่กรอก */
+  | { status: 'valid' }
+  /** ยอดหรือเวลาไม่ตรง ให้สมาชิกยืนยันค่าจากสลิป แล้วยื่นด้วยค่านั้น */
+  | { status: 'mismatch'; slipAmount: number; slipTransferredAt: string }
+  /** ตรวจอัตโนมัติไม่ได้ ยื่นได้ เจ้าหน้าที่จะตรวจเอง */
+  | { status: 'unverified' };
 export const SLIP_MIME_TYPES = ['image/jpeg', 'image/png'] as const;
 
 export type SubmitDepositPayload = {
@@ -327,6 +338,8 @@ export type StaffRequest = MyRequest & {
   memberCode: string;
   slipFileId: string;
   slipCheck: SlipCheck;
+  /** เลขอ้างอิงธุรกรรมจากสลิป ('' ถ้ายังไม่ตรวจ) */
+  slipRef: string;
   reviewedBy: string;
   reviewedAt: string;
   approvedBy: string;

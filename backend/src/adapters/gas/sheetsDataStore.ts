@@ -142,6 +142,7 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
   let cachedBook: GoogleAppsScript.Spreadsheet.Spreadsheet | null = null;
   const book = () => (cachedBook ??= SpreadsheetApp.openById(spreadsheetId));
   const bindings = new SheetTable(book, SHEET_LINE_BINDINGS, BINDING_COLUMNS);
+  // CacheService เก็บข้อมูลชั่วคราว: ตัวนับการผูกบัญชีผิด และผลอ่านสลิป
   const throttles = () => CacheService.getScriptCache();
   const staffTable = new SheetTable(book, SHEET_STAFF, STAFF_COLUMNS);
   const depositAccounts = new SheetTable(book, SHEET_DEPOSIT_ACCOUNTS, DEPOSIT_ACCOUNT_COLUMNS);
@@ -190,6 +191,12 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
 
     saveBinding(binding: LineBinding): void {
       bindings.upsert('id', bindingToRow(binding));
+    },
+
+    getCache: (key: string) => throttles().get(key),
+
+    putCache(key: string, value: string, ttlSeconds: number): void {
+      throttles().put(key, value, ttlSeconds);
     },
 
     getBindingThrottle(lineUserId: string): BindingThrottle | null {

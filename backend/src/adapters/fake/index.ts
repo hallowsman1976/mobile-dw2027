@@ -10,6 +10,7 @@ import type {
   LineUser,
   MemberRequest,
   PayoutAccount,
+  SlipReading,
   StaffAccount,
   StaffSession,
 } from '../ports';
@@ -36,6 +37,11 @@ export type FakeWorld = {
   /** ตั้งเป็น true เพื่อจำลองว่า LINE ส่งข้อความไม่สำเร็จ */
   messengerDown: boolean;
   groupNames: Map<string, string>;
+  /** contentBase64 ของสลิป → ผลที่ SlipOK ปลอมอ่านได้ ไม่มีใน map = อ่านไม่ได้ */
+  slipReadings: Map<string, SlipReading>;
+  /** จำนวนครั้งที่เรียก SlipOK ปลอม */
+  slipCalls: number;
+  cache: Map<string, string>;
   /** เพิ่มการผูกบัญชีที่ใช้งานอยู่ ค่าที่ไม่ระบุเป็นค่าของการผูกใหม่ที่ยังไม่ตั้ง PIN */
   addBinding(binding: Partial<LineBinding> & Pick<LineBinding, 'memberCode' | 'lineUserId'>): LineBinding;
   setNow(date: Date): void;
@@ -66,6 +72,8 @@ export function createFakeWorld(): FakeWorld {
   const files = new Map<string, DocumentContent & { category: FileCategory }>();
   const sentMessages: { to: string; text: string }[] = [];
   const groupNames = new Map<string, string>();
+  const slipReadings = new Map<string, SlipReading>();
+  const cache = new Map<string, string>();
   let fileCounter = 0;
   let now = new Date('2026-01-05T09:00:00+07:00');
   let uuidCounter = 0;
@@ -85,6 +93,10 @@ export function createFakeWorld(): FakeWorld {
         const index = bindings.findIndex((b) => b.id === binding.id);
         if (index >= 0) bindings[index] = { ...binding };
         else bindings.push({ ...binding });
+      },
+      getCache: (key) => cache.get(key) ?? null,
+      putCache: (key, value) => {
+        cache.set(key, value);
       },
       getBindingThrottle: (lineUserId) => {
         const t = bindingThrottles.get(lineUserId);
@@ -174,7 +186,13 @@ export function createFakeWorld(): FakeWorld {
     lineIdentity: {
       verifyIdToken: (idToken) => lineTokens.get(idToken) ?? null,
     },
-    slips: {},
+    slips: {
+      read: (imageBase64) => {
+        world.slipCalls += 1;
+        const reading = slipReadings.get(imageBase64);
+        return reading ? { ...reading } : null;
+      },
+    },
     messenger: {
       pushText: (to, text) => {
         if (world.messengerDown) throw new Error('LINE push failed: HTTP 500');
@@ -206,6 +224,9 @@ export function createFakeWorld(): FakeWorld {
     sentMessages,
     messengerDown: false,
     groupNames,
+    slipReadings,
+    slipCalls: 0,
+    cache,
     addBinding: (partial) => {
       const binding: LineBinding = {
         id: `binding-${bindings.length + 1}`,

@@ -281,6 +281,10 @@ tr.clickable:hover td {
   background: #f0f6f3;
 }
 
+td .badge {
+  margin-left: 6px;
+}
+
 td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
