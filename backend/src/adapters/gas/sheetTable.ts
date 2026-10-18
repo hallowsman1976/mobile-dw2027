@@ -40,6 +40,17 @@ export class SheetTable {
     sheet.getRange(lastRow + 1, 1, 1, this.columns.length).setValues(values);
   }
 
+  /** ลบทุกแถวที่ keyColumn ตรงกัน (ผู้เรียกต้องถือ lock) */
+  deleteWhere(keyColumn: string, value: string): void {
+    const sheet = this.book().getSheetByName(this.name);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    const keyIndex = this.columns.indexOf(keyColumn);
+    const keys = sheet.getRange(2, keyIndex + 1, sheet.getLastRow() - 1, 1).getValues();
+    for (let i = keys.length - 1; i >= 0; i--) {
+      if (toText(keys[i][0]) === value) sheet.deleteRow(i + 2);
+    }
+  }
+
   append(row: Row): void {
     const sheet = this.ensureSheet();
     sheet

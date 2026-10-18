@@ -1,8 +1,12 @@
 import {
   STAFF_ROLES,
   type AccountType,
+  type Holiday,
   type LineGroup,
   type PayoutAccountStatus,
+  type RequestStatus,
+  type RequestType,
+  type SlipCheck,
   type StaffRole,
 } from '../../../../shared/api';
 import type {
@@ -11,6 +15,7 @@ import type {
   DataStore,
   DepositAccount,
   LineBinding,
+  MemberRequest,
   PayoutAccount,
   StaffAccount,
   StaffSession,
@@ -74,6 +79,42 @@ const PAYOUT_COLUMNS = [
 ] as const;
 
 const SETTING_COLUMNS = ['key', 'value'] as const;
+
+export const SHEET_REQUESTS = 'คำขอ';
+export const SHEET_HOLIDAYS = 'วันหยุด';
+
+const REQUEST_COLUMNS = [
+  'id',
+  'requestNumber',
+  'type',
+  'memberCode',
+  'accountNumber',
+  'accountName',
+  'accountType',
+  'amount',
+  'payoutAccountId',
+  'signatureFileId',
+  'slipFileId',
+  'transferredAt',
+  'slipCheck',
+  'slipRef',
+  'status',
+  'reviewedBy',
+  'reviewedAt',
+  'approvedBy',
+  'approvedAt',
+  'completedBy',
+  'completedAt',
+  'rejectedBy',
+  'rejectedAt',
+  'rejectReason',
+  'cancelledAt',
+  'pdfFileId',
+  'submittedAt',
+  'processingDate',
+] as const;
+
+const HOLIDAY_COLUMNS = ['date', 'name'] as const;
 const LINE_GROUP_COLUMNS = ['groupId', 'groupName', 'joinedAt'] as const;
 
 const STAFF_COLUMNS = [
@@ -108,6 +149,8 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
   const payouts = new SheetTable(book, SHEET_PAYOUT_ACCOUNTS, PAYOUT_COLUMNS);
   const settings = new SheetTable(book, SHEET_SETTINGS, SETTING_COLUMNS);
   const lineGroups = new SheetTable(book, SHEET_LINE_GROUPS, LINE_GROUP_COLUMNS);
+  const requests = new SheetTable(book, SHEET_REQUESTS, REQUEST_COLUMNS);
+  const holidays = new SheetTable(book, SHEET_HOLIDAYS, HOLIDAY_COLUMNS);
   const sessions = () => PropertiesService.getUserProperties();
   let lockDepth = 0;
 
@@ -185,6 +228,22 @@ export function createSheetsDataStore(spreadsheetId: string): DataStore {
       settings.upsert('key', { key, value });
     },
 
+    listRequests: () => requests.readAll().map(rowToRequest),
+
+    saveRequest(request: MemberRequest): void {
+      requests.upsert('id', { ...request, amount: request.amount.toFixed(2) });
+    },
+
+    listHolidays: () => holidays.readAll() as Holiday[],
+
+    saveHoliday(holiday: Holiday): void {
+      holidays.upsert('date', { ...holiday });
+    },
+
+    deleteHoliday(date: string): void {
+      holidays.deleteWhere('date', date);
+    },
+
     listLineGroups: () => lineGroups.readAll() as LineGroup[],
 
     saveLineGroup(group: LineGroup): void {
@@ -226,6 +285,17 @@ function removeExpiredSessions(props: GoogleAppsScript.Properties.Properties): v
     const session = JSON.parse(raw) as StaffSession;
     if (Date.parse(session.expiresAt) <= now) props.deleteProperty(key);
   }
+}
+
+function rowToRequest(row: Row): MemberRequest {
+  return {
+    ...(row as Record<keyof MemberRequest, string>),
+    type: row.type as RequestType,
+    accountType: row.accountType as AccountType,
+    amount: Number(row.amount) || 0,
+    slipCheck: (row.slipCheck || 'notChecked') as SlipCheck,
+    status: row.status as RequestStatus,
+  };
 }
 
 function rowToBinding(row: Row): LineBinding {

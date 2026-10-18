@@ -3,10 +3,12 @@ import './staff.css';
 import type { StaffLoginResult, StaffProfile } from '../../../shared/api';
 import { callApi } from '../../lib/apiClient';
 import { h } from '../../lib/dom';
+import { holidaysSection } from './holidays';
 import { importAccountsSection } from './importAccounts';
 import { memberSupportSection } from './memberSupport';
 import { notificationSettingsSection } from './notificationSettings';
 import { payoutReviewSection } from './payoutReview';
+import { requestsSection } from './requests';
 import { gasUrl, notice, session, staffCall } from './session';
 import { roleNames, staffManagementSection } from './staffManagement';
 
@@ -92,7 +94,7 @@ function renderHome(): void {
     'ออกจากระบบ',
   );
 
-  const sections: HTMLElement[] = [];
+  const sections: HTMLElement[] = [requestsSection(me)];
   if (me.roles.includes('reviewer')) {
     sections.push(payoutReviewSection());
   }
@@ -100,13 +102,9 @@ function renderHome(): void {
     sections.push(
       memberSupportSection(),
       importAccountsSection(),
+      holidaysSection(),
       notificationSettingsSection(),
       staffManagementSection(),
-    );
-  }
-  if (sections.length === 0) {
-    sections.push(
-      h('section', { class: 'card' }, h('h2', {}, 'งานของฉัน'), h('p', {}, 'คิวคำขอฝากถอนจะเปิดใช้ในขั้นถัดไปของโครงการ')),
     );
   }
 

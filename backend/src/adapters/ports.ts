@@ -4,8 +4,12 @@
 import type {
   AccountType,
   DocumentContent,
+  Holiday,
   LineGroup,
   PayoutAccountStatus,
+  RequestStatus,
+  RequestType,
+  SlipCheck,
   StaffRole,
 } from '../../../shared/api';
 
@@ -88,6 +92,41 @@ export type PayoutAccount = {
   retiredAt: string;
 };
 
+/** คำขอฝากหรือถอนเงิน ชื่อและประเภทบัญชีบันทึกไว้ ณ เวลายื่น */
+export type MemberRequest = {
+  id: string;
+  requestNumber: string;
+  type: RequestType;
+  memberCode: string;
+  accountNumber: string;
+  accountName: string;
+  accountType: AccountType;
+  amount: number;
+  // ถอนเงิน
+  payoutAccountId: string;
+  signatureFileId: string;
+  // ฝากเงิน
+  slipFileId: string;
+  transferredAt: string;
+  slipCheck: SlipCheck;
+  slipRef: string;
+  status: RequestStatus;
+  reviewedBy: string;
+  reviewedAt: string;
+  approvedBy: string;
+  approvedAt: string;
+  completedBy: string;
+  completedAt: string;
+  rejectedBy: string;
+  rejectedAt: string;
+  rejectReason: string;
+  cancelledAt: string;
+  pdfFileId: string;
+  submittedAt: string;
+  /** วันทำการที่จะดำเนินการ YYYY-MM-DD */
+  processingDate: string;
+};
+
 /** หมวดของไฟล์ แต่ละหมวดเป็นโฟลเดอร์ย่อยใน Drive */
 export type FileCategory = 'payoutDocuments' | 'signatures' | 'slips' | 'pdfs';
 
@@ -127,6 +166,15 @@ export interface DataStore {
   /** ค่าตั้งค่าที่เจ้าหน้าที่เปลี่ยนได้ คืน '' ถ้ายังไม่ตั้ง */
   getSetting(key: string): string;
   setSetting(key: string, value: string): void;
+
+  listRequests(): MemberRequest[];
+  /** เพิ่มหรือแทนที่ตาม id */
+  saveRequest(request: MemberRequest): void;
+
+  listHolidays(): Holiday[];
+  /** เพิ่มหรือแทนที่ตาม date */
+  saveHoliday(holiday: Holiday): void;
+  deleteHoliday(date: string): void;
 
   listLineGroups(): LineGroup[];
   /** เพิ่มหรือแทนที่ตาม groupId */

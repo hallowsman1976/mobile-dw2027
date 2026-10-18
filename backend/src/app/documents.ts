@@ -31,5 +31,9 @@ function findDocumentOwner(fileId: string, deps: Deps): string | null {
   const payout = deps.data
     .listPayoutAccounts()
     .find((a) => [a.idCardFileId, a.depositBookFileId, a.payoutBookFileId].includes(fileId));
-  return payout ? `payoutAccount:${payout.id}` : null;
+  if (payout) return `payoutAccount:${payout.id}`;
+  const request = deps.data
+    .listRequests()
+    .find((r) => [r.slipFileId, r.signatureFileId, r.pdfFileId].includes(fileId));
+  return request ? `request:${request.requestNumber}` : null;
 }

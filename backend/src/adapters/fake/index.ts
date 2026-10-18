@@ -1,14 +1,15 @@
 // ตัวปลอมในหน่วยความจำของตัวกลางทั้งหมด ใช้ในการทดสอบเท่านั้น
-import type { DocumentContent, LineGroup } from '../../../../shared/api';
+import type { DocumentContent, Holiday, LineGroup } from '../../../../shared/api';
 import type {
   AuditEntry,
   BindingThrottle,
   DepositAccount,
-  FileCategory,
-  PayoutAccount,
   Deps,
+  FileCategory,
   LineBinding,
   LineUser,
+  MemberRequest,
+  PayoutAccount,
   StaffAccount,
   StaffSession,
 } from '../ports';
@@ -24,6 +25,8 @@ export type FakeWorld = {
   auditLog: AuditEntry[];
   bindingThrottles: Map<string, BindingThrottle>;
   payoutAccounts: PayoutAccount[];
+  requests: MemberRequest[];
+  holidays: Holiday[];
   settings: Map<string, string>;
   lineGroups: LineGroup[];
   /** fileId → ไฟล์ที่บันทึกไว้ */
@@ -56,6 +59,8 @@ export function createFakeWorld(): FakeWorld {
   const auditLog: AuditEntry[] = [];
   const bindingThrottles = new Map<string, BindingThrottle>();
   const payoutAccounts: PayoutAccount[] = [];
+  const requests: MemberRequest[] = [];
+  const holidays: Holiday[] = [];
   const settings = new Map<string, string>();
   const lineGroups: LineGroup[] = [];
   const files = new Map<string, DocumentContent & { category: FileCategory }>();
@@ -100,6 +105,22 @@ export function createFakeWorld(): FakeWorld {
         const index = payoutAccounts.findIndex((a) => a.id === account.id);
         if (index >= 0) payoutAccounts[index] = { ...account };
         else payoutAccounts.push({ ...account });
+      },
+      listRequests: () => requests.map((r) => ({ ...r })),
+      saveRequest: (request) => {
+        const index = requests.findIndex((r) => r.id === request.id);
+        if (index >= 0) requests[index] = { ...request };
+        else requests.push({ ...request });
+      },
+      listHolidays: () => holidays.map((h) => ({ ...h })),
+      saveHoliday: (holiday) => {
+        const index = holidays.findIndex((h) => h.date === holiday.date);
+        if (index >= 0) holidays[index] = { ...holiday };
+        else holidays.push({ ...holiday });
+      },
+      deleteHoliday: (date) => {
+        const index = holidays.findIndex((h) => h.date === date);
+        if (index >= 0) holidays.splice(index, 1);
       },
       getSetting: (key) => settings.get(key) ?? '',
       setSetting: (key, value) => {
@@ -172,6 +193,8 @@ export function createFakeWorld(): FakeWorld {
     auditLog,
     bindingThrottles,
     payoutAccounts,
+    requests,
+    holidays,
     settings,
     lineGroups,
     files,

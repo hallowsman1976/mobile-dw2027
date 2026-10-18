@@ -2,6 +2,7 @@ import type { ApiAuth, PingResult } from '../../../shared/api';
 import type { Deps } from '../adapters/ports';
 import { depositAccountImportStatus, importAccounts } from './depositAccounts';
 import { viewDocument } from './documents';
+import { addHoliday, listHolidays, removeHoliday } from './holidays';
 import { lineGroupSettings, updateNotificationSettings } from './lineGroups';
 import { lookupMember, resetPin, unbindLineAccount } from './memberAdmin';
 import { bindLineAccount, listMyAccounts, me, setPin } from './members';
@@ -13,6 +14,14 @@ import {
   reviewPayoutAccount,
 } from './payoutAccounts';
 import { changePin } from './pin';
+import {
+  cancelRequest,
+  getRequest,
+  listMyRequests,
+  listRequests,
+  reviewRequest,
+  submitDepositRequest,
+} from './requests';
 import {
   createStaff,
   listStaff,
@@ -44,6 +53,9 @@ export const actions: Record<string, ActionHandler> = {
   registerPayoutAccount,
   listMyPayoutAccounts,
   retirePayoutAccount,
+  submitDepositRequest,
+  listMyRequests,
+  cancelRequest,
   // เจ้าหน้าที่
   staffLogin,
   staffLogout,
@@ -62,4 +74,10 @@ export const actions: Record<string, ActionHandler> = {
   viewDocument,
   lineGroupSettings,
   updateNotificationSettings,
+  listRequests,
+  getRequest,
+  reviewRequest,
+  listHolidays,
+  addHoliday,
+  removeHoliday,
 };

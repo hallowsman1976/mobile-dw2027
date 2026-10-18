@@ -103,6 +103,44 @@ button.small {
   color: var(--primary);
 }
 
+.badge.status-approved,
+.badge.status-completed {
+  background: #e6f4ec;
+  color: var(--primary);
+}
+
+.badge.status-cancelled {
+  background: #eceff1;
+  color: var(--muted);
+}
+
+.request-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.request-head .badge {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.link-button {
+  display: block;
+  margin-top: 14px;
+  padding: 10px;
+  text-align: center;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.flatpickr-calendar {
+  font-family: inherit;
+}
+
 .badge.status-rejected {
   background: #fbeaea;
   color: var(--danger);

@@ -247,6 +247,92 @@ export type ReviewDecisionPayload = {
   reason?: string;
 };
 
+// ---------- คำขอฝากและถอนเงิน ----------
+
+export type RequestType = 'deposit' | 'withdrawal';
+
+export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
+  deposit: 'ฝากเงิน',
+  withdrawal: 'ถอนเงิน',
+};
+
+export type RequestStatus =
+  | 'pendingReview'
+  | 'pendingApproval'
+  | 'approved'
+  | 'completed'
+  | 'rejected'
+  | 'cancelled';
+
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+  pendingReview: 'รอตรวจ',
+  pendingApproval: 'รออนุมัติ',
+  approved: 'อนุมัติ',
+  completed: 'เสร็จสิ้น',
+  rejected: 'ปฏิเสธ',
+  cancelled: 'ยกเลิก',
+};
+
+/** ผลตรวจสลิปของคำขอฝากเงิน */
+export type SlipCheck = 'notChecked' | 'valid';
+
+export const SLIP_CHECK_LABELS: Record<SlipCheck, string> = {
+  notChecked: 'ยังไม่ตรวจสลิป',
+  valid: 'สลิปถูกต้อง',
+};
+
+export const DEPOSIT_MIN_AMOUNT = 100;
+export const SLIP_MIME_TYPES = ['image/jpeg', 'image/png'] as const;
+
+export type SubmitDepositPayload = {
+  accountNumber: string;
+  amount: number;
+  /** ISO 8601 */
+  transferredAt: string;
+  slip: UploadedFile;
+};
+
+/** คำขอตามที่สมาชิกเห็น */
+export type MyRequest = {
+  id: string;
+  requestNumber: string;
+  type: RequestType;
+  accountNumber: string;
+  accountName: string;
+  accountType: AccountType;
+  amount: number;
+  status: RequestStatus;
+  rejectReason: string;
+  submittedAt: string;
+  /** วันทำการที่จะดำเนินการ YYYY-MM-DD */
+  processingDate: string;
+  transferredAt: string;
+};
+
+/** คำขอตามที่เจ้าหน้าที่เห็น */
+export type StaffRequest = MyRequest & {
+  memberCode: string;
+  slipFileId: string;
+  slipCheck: SlipCheck;
+  reviewedBy: string;
+  reviewedAt: string;
+  approvedBy: string;
+  approvedAt: string;
+  completedBy: string;
+  completedAt: string;
+  rejectedBy: string;
+  rejectedAt: string;
+};
+
+export type ListRequestsPayload = {
+  status?: RequestStatus;
+  type?: RequestType;
+  /** YYYY-MM-DD ตามวันทำการที่จะดำเนินการ */
+  processingDate?: string;
+};
+
+export type Holiday = { date: string; name: string };
+
 // ---------- กลุ่ม LINE ของเจ้าหน้าที่ ----------
 
 export type LineGroup = { groupId: string; groupName: string; joinedAt: string };

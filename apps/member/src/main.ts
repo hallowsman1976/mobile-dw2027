@@ -6,6 +6,8 @@ import { MENU, renderMessage, type PageId } from './layout';
 import { renderBindForm, renderConsent, renderSetPin } from './onboarding';
 import { renderAccount, renderComingSoon, renderContact, renderHome } from './pages';
 import { renderPayout } from './payout';
+import { renderDeposit } from './deposit';
+import { renderHistory } from './history';
 
 const PAGES: PageId[] = ['home', ...MENU.map((item) => item.id)];
 
@@ -59,6 +61,10 @@ async function route(): Promise<void> {
       return renderContact();
     case 'payout':
       return renderPayout(me);
+    case 'deposit':
+      return renderDeposit();
+    case 'history':
+      return renderHistory();
     default:
       return renderComingSoon(page);
   }

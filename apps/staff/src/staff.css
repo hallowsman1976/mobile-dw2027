@@ -262,6 +262,59 @@ select {
   margin: 0 0 10px;
 }
 
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.filters label {
+  flex: 0 1 200px;
+}
+
+tr.clickable {
+  cursor: pointer;
+}
+
+tr.clickable:hover td {
+  background: #f0f6f3;
+}
+
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge.status-pendingReview,
+.badge.status-pendingApproval {
+  background: #fff3e0;
+  color: #9a5b00;
+}
+
+.badge.status-rejected {
+  background: #fbeaea;
+  color: var(--danger);
+}
+
+.badge.status-cancelled {
+  background: #eceff1;
+  color: var(--muted);
+}
+
+.review-card.detail {
+  margin-top: 16px;
+}
+
+input[type='date'] {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
 .viewer {
   position: fixed;
   inset: 0;
