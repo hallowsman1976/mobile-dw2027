@@ -40,7 +40,7 @@ npm run dev:member
 
 ## พัฒนาบนเครื่องด้วยหลังบ้านจำลอง
 
-`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` (มีทุกบทบาท) และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive) ข้อความ LINE ไม่ได้ส่งจริง แต่พิมพ์ออกในหน้าต่างของ `npm run dev:api` ไฟล์ export งานประจำวันเป็น .csv แทน .xlsx และ SlipOK จำลองอ่านทุกสลิปเป็นการโอน 1,500 บาทเข้าบัญชีสหกรณ์ เมื่อ 10 นาทีก่อนอัปโหลดครั้งแรก และมีกลุ่ม LINE ทดลองให้เลือก
+`npm run dev:api` เปิดหลังบ้านจำลองที่ http://localhost:8787 ใช้ตัวรับคำสั่งตัวจริงกับข้อมูลในหน่วยความจำ (หายเมื่อปิด) มีผู้ดูแลระบบทดลอง `admin` / `admin-password-1` (มีทุกบทบาท) และ LIFF token ทดลอง `dev-line-token` การนำเข้าข้อมูลบัญชีเงินฝากในหลังบ้านจำลองรับเฉพาะไฟล์ .csv (หลังบ้านจริงรับ .xlsx/.xls/.csv ผ่าน Google Drive) ข้อความ LINE ไม่ได้ส่งจริง แต่พิมพ์ออกในหน้าต่างของ `npm run dev:api` ไฟล์ export งานประจำวันเป็น .csv แทน .xlsx PDF ใบถอนเงินเป็นตัวอักษรอังกฤษอย่างง่าย และ SlipOK จำลองอ่านทุกสลิปเป็นการโอน 1,500 บาทเข้าบัญชีสหกรณ์ เมื่อ 10 นาทีก่อนอัปโหลดครั้งแรก และมีกลุ่ม LINE ทดลองให้เลือก
 
 1. สร้างไฟล์ `apps/staff/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` และ `apps/member/.env.development.local` ที่มี `VITE_GAS_URL=http://localhost:8787` กับ `VITE_DEV_ID_TOKEN=dev-line-token` (หน้าสมาชิกจะข้าม LIFF และใช้ token ทดลองแทน เฉพาะตอน `npm run dev:member`) สมาชิกทดลองผูกบัญชีด้วยรหัสสมาชิก `123` และเลขบัตร `1101700230708`
 2. รันหลังบ้านจำลอง:
@@ -88,7 +88,7 @@ npm run dev:member
    - `SLIPOK_API_KEY` และ `SLIPOK_BRANCH_ID` = จากบัญชี SlipOK ของสหกรณ์ (ถ้ายังไม่ตั้ง ระบบรับสลิปทุกใบเป็น ยังไม่ตรวจสลิป ให้เจ้าหน้าที่ตรวจเอง)
    - หลังรันระบบครั้งแรก ในชีต `ตั้งค่า` ของ Spreadsheet เพิ่มแถว key `coopReceivingAccount` value = เลขบัญชีกรุงไทยที่สหกรณ์รับโอน (ตัวเลขล้วน) เพื่อให้ระบบตรวจว่าสลิปโอนเข้าบัญชีสหกรณ์
    - ระบบสร้างโฟลเดอร์ `ฝากถอนออนไลน์ - เอกสาร` ใน Drive เองเมื่อมีไฟล์แรก แล้วจำ ID ไว้ใน Script Properties (`DRIVE_ROOT_FOLDER_ID`, `DRIVE_FOLDER_*`) อย่าแชร์โฟลเดอร์นี้
-8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run ดู log ว่าตั้งครบ ครั้งแรกระบบจะขออนุญาตสิทธิ์ Sheets, Drive (เฉพาะไฟล์ที่ระบบสร้าง) และการเรียกเว็บภายนอก ถ้าภายหลังเพิ่มสิทธิ์ใหม่ใน `appsscript.json` ต้องรันฟังก์ชันใดก็ได้ใน editor เพื่ออนุญาตอีกครั้ง
+8. ในตัวแก้โค้ด เลือกฟังก์ชัน `checkScriptProperties` แล้วกด Run ดู log ว่าตั้งครบ ครั้งแรกระบบจะขออนุญาตสิทธิ์ Sheets, Docs, Drive (เฉพาะไฟล์ที่ระบบสร้าง) และการเรียกเว็บภายนอก ถ้าภายหลังเพิ่มสิทธิ์ใหม่ใน `appsscript.json` ต้องรันฟังก์ชันใดก็ได้ใน editor เพื่ออนุญาตอีกครั้ง
 9. สร้างผู้ดูแลระบบคนแรก: ตั้ง Script Properties `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_FULL_NAME`, `INITIAL_ADMIN_PASSWORD` (อย่างน้อย 10 ตัวอักษร) แล้วรันฟังก์ชัน `createFirstAdministrator` ระบบจะลบ `INITIAL_ADMIN_PASSWORD` ออกให้เมื่อสร้างสำเร็จ
 10. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone แล้วจด URL ที่ลงท้ายด้วย `/exec`
 

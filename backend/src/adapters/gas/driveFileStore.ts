@@ -1,5 +1,6 @@
 import type { DocumentContent } from '../../../../shared/api';
 import type { FileCategory, FileStore, SpreadsheetTab } from '../ports';
+import { ensureWithdrawalTemplate, renderTemplateToPdf } from './withdrawalTemplate';
 
 const SOURCE_MIME_TYPES: Record<string, string> = {
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -69,6 +70,17 @@ export function createDriveFileStore(): FileStore {
       );
       if (!created.id) throw new Error('Drive did not return a file id');
       return created.id;
+    },
+
+    renderWithdrawalPdf(fileName: string, texts: Record<string, string>, images: Record<string, string>): string {
+      const drive = requireDrive();
+      const templateId = ensureWithdrawalTemplate(drive, rootFolderId());
+      const pdf = renderTemplateToPdf(drive, templateId, categoryFolderId('pdfs'), texts, images);
+      return this.saveFile('pdfs', fileName, 'application/pdf', pdf);
+    },
+
+    withdrawalTemplateUrl(): string {
+      return `https://docs.google.com/document/d/${ensureWithdrawalTemplate(requireDrive(), rootFolderId())}/edit`;
     },
 
     buildSpreadsheet(fileName: string, tabs: SpreadsheetTab[]): DocumentContent {
@@ -147,8 +159,11 @@ function requireDrive(): GoogleAppsScript.Drive {
 
 /** โฟลเดอร์ของแต่ละหมวด สร้างครั้งแรกที่ใช้ แล้วจำ ID ไว้ */
 function categoryFolderId(category: FileCategory): string {
-  const rootId = ensureFolder('DRIVE_ROOT_FOLDER_ID', ROOT_FOLDER_NAME);
-  return ensureFolder(`DRIVE_FOLDER_${category}`, CATEGORY_FOLDER_NAMES[category], rootId);
+  return ensureFolder(`DRIVE_FOLDER_${category}`, CATEGORY_FOLDER_NAMES[category], rootFolderId());
+}
+
+function rootFolderId(): string {
+  return ensureFolder('DRIVE_ROOT_FOLDER_ID', ROOT_FOLDER_NAME);
 }
 
 function ensureFolder(propertyKey: string, name: string, parentId?: string): string {

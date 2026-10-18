@@ -30,6 +30,7 @@ import {
 } from './requests';
 import { requireStaff } from './staff';
 import { validateUpload } from './uploads';
+import { generateWithdrawalPdf } from './withdrawalPdf';
 import { requirePayload, requireString } from './validate';
 
 /** สถานะที่นับเป็นคำขอค้าง: บัญชีเงินฝากหนึ่งบัญชีมีคำขอถอนเงินค้างได้ครั้งละหนึ่งรายการ */
@@ -118,6 +119,7 @@ export function approveRequest(input: { auth?: ApiAuth; payload?: unknown }, dep
     return decided;
   });
 
+  if (updated.status === 'approved') generateWithdrawalPdf(updated, deps);
   notifyStatusChanged(updated, deps);
-  return toStaff(updated, deps);
+  return toStaff(findRequest(updated.id, deps), deps);
 }

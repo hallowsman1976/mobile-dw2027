@@ -57,6 +57,38 @@ world.deps.slips.read = (imageBase64) => {
     receiverName: 'สหกรณ์ออมทรัพย์สาธารณสุขจังหวัดมุกดาหาร จำกัด',
   };
 };
+// PDF ใบถอนเงินจำลอง: หลังบ้านจริงสร้างจาก Google Docs ส่วนตัวจำลองสร้าง PDF ตัวอักษรอังกฤษเท่านั้น
+world.deps.files.renderWithdrawalPdf = (fileName, texts) => {
+  const lines = [
+    'DEV PDF - the real system renders the Google Docs template in Thai',
+    ...['requestNumber', 'memberCode', 'accountNumber', 'amount', 'payoutAccountNumber', 'processingDate'].map(
+      (key) => `${key}: ${texts[key] ?? ''}`,
+    ),
+  ];
+  return world.deps.files.saveFile('pdfs', fileName, 'application/pdf', devPdf(lines));
+};
+
+function devPdf(lines: string[]): string {
+  const ascii = (s: string) => s.replace(/[^\x20-\x7e]/g, '?').replace(/[()\\]/g, '\\$&');
+  const stream = `BT /F1 14 Tf 50 780 Td 20 TL ${lines.map((l) => `(${ascii(l)}) Tj T*`).join(' ')} ET`;
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets = objects.map((body, i) => {
+    const offset = pdf.length;
+    pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    return offset;
+  });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(pdf, 'latin1').toString('base64');
+}
 // หลังบ้านจริงสร้าง .xlsx ผ่าน Google Sheets ส่วนตัวจำลองสร้าง .csv ที่รวมทุกแท็บแทน
 world.deps.files.buildSpreadsheet = (fileName, sheets) => {
   const csv = sheets

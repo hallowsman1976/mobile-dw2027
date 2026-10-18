@@ -39,6 +39,8 @@ export type FakeWorld = {
   groupNames: Map<string, string>;
   /** contentBase64 ของสลิป → ผลที่ SlipOK ปลอมอ่านได้ ไม่มีใน map = อ่านไม่ได้ */
   slipReadings: Map<string, SlipReading>;
+  /** ตั้งเป็น true เพื่อจำลองว่าสร้าง PDF ไม่สำเร็จ */
+  pdfDown: boolean;
   /** จำนวนครั้งที่เรียก SlipOK ปลอม */
   slipCalls: number;
   cache: Map<string, string>;
@@ -173,6 +175,14 @@ export function createFakeWorld(): FakeWorld {
         files.set(fileId, { category, fileName, mimeType, contentBase64 });
         return fileId;
       },
+      renderWithdrawalPdf: (fileName, texts, images) => {
+        if (world.pdfDown) throw new Error('Docs export failed');
+        const fileId = `file-${++fileCounter}`;
+        const contentBase64 = Buffer.from(JSON.stringify({ texts, images }), 'utf8').toString('base64');
+        files.set(fileId, { category: 'pdfs', fileName, mimeType: 'application/pdf', contentBase64 });
+        return fileId;
+      },
+      withdrawalTemplateUrl: () => 'https://docs.google.com/document/d/fake-template/edit',
       buildSpreadsheet: (fileName, sheets) => ({
         fileName,
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -226,6 +236,7 @@ export function createFakeWorld(): FakeWorld {
     groupNames,
     slipReadings,
     slipCalls: 0,
+    pdfDown: false,
     cache,
     addBinding: (partial) => {
       const binding: LineBinding = {

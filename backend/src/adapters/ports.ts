@@ -208,6 +208,14 @@ export interface FileStore {
   /** คืน null ถ้าไม่พบไฟล์ */
   readFile(fileId: string): DocumentContent | null;
 
+  /**
+   * สร้าง PDF ใบถอนเงินจาก Google Docs ต้นแบบ: แทน {{ชื่อตัวแปร}} ด้วยข้อความ และ {{ชื่อรูป}} ด้วยรูป PNG
+   * บันทึก PDF ในหมวด pdfs แล้วคืน fileId
+   */
+  renderWithdrawalPdf(fileName: string, texts: Record<string, string>, images: Record<string, string>): string;
+  /** ลิงก์แก้ไข Google Docs ต้นแบบใบถอนเงิน (สร้างต้นแบบชั่วคราวให้ถ้ายังไม่มี) */
+  withdrawalTemplateUrl(): string;
+
   /** สร้างไฟล์ .xlsx ชั่วคราวจากตารางหลายแท็บ คืนเนื้อไฟล์ ไม่เก็บไฟล์ไว้ใน Drive */
   buildSpreadsheet(fileName: string, sheets: SpreadsheetTab[]): DocumentContent;
 }

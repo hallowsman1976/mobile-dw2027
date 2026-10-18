@@ -184,6 +184,7 @@ function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done
       ? h('p', { class: 'warn-text' }, 'ตรวจสลิปอัตโนมัติไม่ได้ (SlipOK อ่านไม่ได้หรือไม่ตอบ) ตรวจยอด เวลา บัญชีผู้รับ และว่าสลิปไม่เคยใช้แจ้งฝากมาก่อน')
       : null,
     documentButtons(request, show),
+    pdfActions(request, show, done),
     request.type === 'withdrawal' && (canReview || isApprover)
       ? h('p', { class: 'warn-text' }, 'ตรวจยอดคงเหลือในระบบหลักก่อน ระบบนี้ไม่รู้ยอดคงเหลือ')
       : null,
@@ -208,6 +209,32 @@ function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done
           h('button', { type: 'button', class: 'small secondary danger', onClick: () => void decide('approveRequest', 'reject') }, 'ปฏิเสธ'),
         )
       : null,
+  );
+}
+
+/** PDF ใบถอนเงิน: เปิดดู หรือสร้างใหม่ถ้าครั้งก่อนสร้างไม่สำเร็จหรือแก้ต้นแบบแล้ว */
+function pdfActions(request: StaffRequest, show: Show, done: () => Promise<void>): HTMLElement | null {
+  if (request.type !== 'withdrawal' || (request.status !== 'approved' && request.status !== 'completed')) return null;
+  const regenerate = h('button', { type: 'button', class: 'small secondary' }, request.pdfFileId ? 'สร้าง PDF ใหม่' : 'สร้าง PDF');
+  regenerate.addEventListener('click', async () => {
+    regenerate.disabled = true;
+    regenerate.textContent = 'กำลังสร้าง PDF…';
+    const res = await staffCall('regenerateWithdrawalPdf', { id: request.id });
+    if (!res.ok) {
+      regenerate.disabled = false;
+      regenerate.textContent = 'สร้าง PDF ใหม่';
+      return showError(res, show);
+    }
+    show(`สร้าง PDF ของ ${request.requestNumber} แล้ว`);
+    await done();
+  });
+  return h(
+    'div',
+    { class: 'row-actions', style: 'margin-top: 8px' },
+    request.pdfFileId
+      ? h('button', { type: 'button', class: 'small', onClick: () => void openDocument(request.pdfFileId, `ใบถอนเงิน ${request.requestNumber}`, show) }, 'ดู PDF ใบถอนเงิน')
+      : h('span', { class: 'warn-text' }, 'ยังไม่มี PDF ใบถอนเงิน'),
+    regenerate,
   );
 }
 

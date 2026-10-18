@@ -12,6 +12,7 @@ import { payoutReviewSection } from './payoutReview';
 import { requestsSection } from './requests';
 import { gasUrl, notice, session, staffCall } from './session';
 import { roleNames, staffManagementSection } from './staffManagement';
+import { templateSettingsSection } from './templateSettings';
 
 const app = document.getElementById('app')!;
 
@@ -105,6 +106,7 @@ function renderHome(): void {
       importAccountsSection(),
       holidaysSection(),
       notificationSettingsSection(),
+      templateSettingsSection(),
       staffManagementSection(),
     );
   }

@@ -16,6 +16,7 @@ import {
 } from './payoutAccounts';
 import { changePin } from './pin';
 import { checkSlip } from './slips';
+import { regenerateWithdrawalPdf, withdrawalTemplate } from './withdrawalPdf';
 import { approveRequest, submitWithdrawalRequest } from './withdrawals';
 import {
   cancelRequest,
@@ -83,6 +84,8 @@ export const actions: Record<string, ActionHandler> = {
   getRequest,
   reviewRequest,
   approveRequest,
+  regenerateWithdrawalPdf,
+  withdrawalTemplate,
   exportApproved,
   completeRequests,
   listHolidays,
