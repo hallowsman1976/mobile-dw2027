@@ -14,6 +14,7 @@ import {
   reviewPayoutAccount,
 } from './payoutAccounts';
 import { changePin } from './pin';
+import { approveRequest, submitWithdrawalRequest } from './withdrawals';
 import {
   cancelRequest,
   getRequest,
@@ -54,6 +55,7 @@ export const actions: Record<string, ActionHandler> = {
   listMyPayoutAccounts,
   retirePayoutAccount,
   submitDepositRequest,
+  submitWithdrawalRequest,
   listMyRequests,
   cancelRequest,
   // เจ้าหน้าที่
@@ -77,6 +79,7 @@ export const actions: Record<string, ActionHandler> = {
   listRequests,
   getRequest,
   reviewRequest,
+  approveRequest,
   listHolidays,
   addHoliday,
   removeHoliday,

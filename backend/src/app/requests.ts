@@ -116,12 +116,12 @@ export function listRequests(input: { auth?: ApiAuth; payload?: unknown }, deps:
     .filter((r) => !filter.type || r.type === filter.type)
     .filter((r) => !filter.processingDate || r.processingDate === filter.processingDate)
     .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt))
-    .map(toStaff);
+    .map((r) => toStaff(r, deps));
 }
 
 export function getRequest(input: { auth?: ApiAuth; payload?: unknown }, deps: Deps): StaffRequest {
   requireStaff(input.auth, deps);
-  return toStaff(findRequest(requireString(requirePayload(input.payload).id, 'คำขอ'), deps));
+  return toStaff(findRequest(requireString(requirePayload(input.payload).id, 'คำขอ'), deps), deps);
 }
 
 /**
@@ -157,7 +157,13 @@ export function reviewRequest(input: { auth?: ApiAuth; payload?: unknown }, deps
   });
 
   notifyStatusChanged(updated, deps);
-  return toStaff(updated);
+  if (updated.status === 'pendingApproval') {
+    notifyStaffGroup(
+      `คำขอถอนเงิน ${updated.requestNumber} รออนุมัติ\nสมาชิก ${updated.memberCode}\nยอด ${formatBaht(updated.amount)} บาท\nตรวจแล้วโดย ${updated.reviewedBy}`,
+      deps,
+    );
+  }
+  return toStaff(updated, deps);
 }
 
 // ---------- ส่วนที่คำขอทุกประเภทใช้ร่วมกัน ----------
@@ -303,7 +309,10 @@ export function toMine(request: MemberRequest): MyRequest {
   };
 }
 
-export function toStaff(request: MemberRequest): StaffRequest {
+export function toStaff(request: MemberRequest, deps: Deps): StaffRequest {
+  const payout = request.payoutAccountId
+    ? deps.data.listPayoutAccounts().find((a) => a.id === request.payoutAccountId)
+    : undefined;
   return {
     ...toMine(request),
     memberCode: request.memberCode,
@@ -317,5 +326,20 @@ export function toStaff(request: MemberRequest): StaffRequest {
     completedAt: request.completedAt,
     rejectedBy: request.rejectedBy,
     rejectedAt: request.rejectedAt,
+    signatureFileId: request.signatureFileId,
+    pdfFileId: request.pdfFileId,
+    payoutAccount: payout
+      ? {
+          id: payout.id,
+          bankCode: payout.bankCode,
+          accountNumber: payout.accountNumber,
+          accountName: payout.accountName,
+          documents: {
+            idCard: payout.idCardFileId,
+            depositBook: payout.depositBookFileId,
+            payoutBook: payout.payoutBookFileId,
+          },
+        }
+      : null,
   };
 }

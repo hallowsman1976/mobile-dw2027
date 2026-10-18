@@ -292,6 +292,19 @@ export type SubmitDepositPayload = {
   slip: UploadedFile;
 };
 
+export const WITHDRAWAL_MIN_AMOUNT = 1_000;
+export const WITHDRAWAL_MAX_AMOUNT = 100_000;
+export const SIGNATURE_MAX_BYTES = 1024 * 1024;
+
+export type SubmitWithdrawalPayload = {
+  accountNumber: string;
+  payoutAccountId: string;
+  amount: number;
+  /** ลายมือชื่อที่วาดบนจอ เป็น PNG ใช้เป็นทั้งลายมือชื่อเจ้าของบัญชีและผู้รับเงิน */
+  signature: UploadedFile;
+  pin: string;
+};
+
 /** คำขอตามที่สมาชิกเห็น */
 export type MyRequest = {
   id: string;
@@ -322,6 +335,16 @@ export type StaffRequest = MyRequest & {
   completedAt: string;
   rejectedBy: string;
   rejectedAt: string;
+  /** เฉพาะคำขอถอนเงิน */
+  signatureFileId: string;
+  pdfFileId: string;
+  payoutAccount: null | {
+    id: string;
+    bankCode: string;
+    accountNumber: string;
+    accountName: string;
+    documents: Record<PayoutDocumentKind, string>;
+  };
 };
 
 export type ListRequestsPayload = {

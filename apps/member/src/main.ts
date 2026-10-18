@@ -8,6 +8,7 @@ import { renderAccount, renderComingSoon, renderContact, renderHome } from './pa
 import { renderPayout } from './payout';
 import { renderDeposit } from './deposit';
 import { renderHistory } from './history';
+import { renderWithdraw } from './withdraw';
 
 const PAGES: PageId[] = ['home', ...MENU.map((item) => item.id)];
 
@@ -65,6 +66,8 @@ async function route(): Promise<void> {
       return renderDeposit();
     case 'history':
       return renderHistory();
+    case 'withdraw':
+      return renderWithdraw(me);
     default:
       return renderComingSoon(page);
   }

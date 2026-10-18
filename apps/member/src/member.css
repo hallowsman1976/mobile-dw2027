@@ -137,6 +137,32 @@ button.small {
   text-decoration: none;
 }
 
+.field-title {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.signature-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  border: 1px dashed var(--muted);
+  border-radius: 8px;
+  background: #fff;
+  touch-action: none;
+}
+
+.signature-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.signature-actions button {
+  margin-top: 6px;
+}
+
 .flatpickr-calendar {
   font-family: inherit;
 }

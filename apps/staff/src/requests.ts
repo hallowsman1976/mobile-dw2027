@@ -1,10 +1,13 @@
 // คิวคำขอฝากถอนเงิน: เจ้าหน้าที่ทุกบทบาทดูได้ ผู้ตรวจตรวจคำขอที่รอตรวจ
 import {
   ACCOUNT_TYPE_LABELS,
+  BANKS,
+  PAYOUT_DOCUMENT_LABELS,
   REQUEST_STATUS_LABELS,
   REQUEST_TYPE_LABELS,
   SLIP_CHECK_LABELS,
   type ListRequestsPayload,
+  type PayoutDocumentKind,
   type RequestStatus,
   type RequestType,
   type StaffProfile,
@@ -22,12 +25,15 @@ export function requestsSection(me: StaffProfile): HTMLElement {
   const listSlot = h('div', { class: 'table-wrap' }, h('p', {}, 'กำลังโหลด…'));
   const detailSlot = h('div');
 
+  // ผู้อนุมัติที่ไม่ได้เป็นผู้ตรวจ เริ่มที่คิวรออนุมัติ
+  const defaultStatus: RequestStatus =
+    me.roles.includes('approver') && !me.roles.includes('reviewer') ? 'pendingApproval' : 'pendingReview';
   const status = h(
     'select',
     {},
     h('option', { value: '' }, 'ทุกสถานะ'),
     ...(Object.keys(REQUEST_STATUS_LABELS) as RequestStatus[]).map((s) =>
-      h('option', { value: s, selected: s === 'pendingReview' }, REQUEST_STATUS_LABELS[s]),
+      h('option', { value: s, selected: s === defaultStatus }, REQUEST_STATUS_LABELS[s]),
     ),
   );
   const type = h(
@@ -120,14 +126,18 @@ function requestTable(requests: StaffRequest[], onOpen: (request: StaffRequest) 
 function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done: () => Promise<void>): HTMLElement {
   const reason = h('input', { type: 'text', placeholder: 'เหตุผลที่ปฏิเสธ (แจ้งสมาชิก)' });
 
-  async function review(decision: 'approve' | 'reject'): Promise<void> {
-    const res = await staffCall('reviewRequest', { id: request.id, decision, reason: reason.value });
+  async function decide(action: 'reviewRequest' | 'approveRequest', decision: 'approve' | 'reject'): Promise<void> {
+    const res = await staffCall(action, { id: request.id, decision, reason: reason.value });
     if (!res.ok) return showError(res, show);
-    show(decision === 'approve' ? `ผ่านการตรวจ ${request.requestNumber} แล้ว` : `ปฏิเสธ ${request.requestNumber} แล้ว`);
+    const done1 = action === 'reviewRequest' ? `ผ่านการตรวจ ${request.requestNumber} แล้ว` : `อนุมัติ ${request.requestNumber} แล้ว`;
+    show(decision === 'approve' ? done1 : `ปฏิเสธ ${request.requestNumber} แล้ว`);
     await done();
   }
 
   const canReview = request.status === 'pendingReview' && me.roles.includes('reviewer');
+  const isApprover = request.status === 'pendingApproval' && me.roles.includes('approver');
+  const reviewedByMe = request.reviewedBy === me.username;
+  const payout = request.payoutAccount;
   const fields: [string, string][] = [
     ['สมาชิก', request.memberCode],
     ['บัญชีเงินฝาก', `${request.accountNumber} · ${request.accountName} · ${ACCOUNT_TYPE_LABELS[request.accountType]}`],
@@ -138,7 +148,14 @@ function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done
   if (request.type === 'deposit') {
     fields.push(['โอนเมื่อ', formatThaiDateTimeFromIso(request.transferredAt)], ['ผลตรวจสลิป', SLIP_CHECK_LABELS[request.slipCheck]]);
   }
+  if (payout) {
+    fields.push(
+      ['โอนเข้าบัญชี', `${BANKS.find((b) => b.code === payout.bankCode)?.name ?? payout.bankCode} ${payout.accountNumber}`],
+      ['ชื่อบัญชีรับเงิน', payout.accountName],
+    );
+  }
   if (request.reviewedBy) fields.push(['ผู้ตรวจ', `${request.reviewedBy} · ${formatThaiDateTimeFromIso(request.reviewedAt)}`]);
+  if (request.approvedBy) fields.push(['ผู้อนุมัติ', `${request.approvedBy} · ${formatThaiDateTimeFromIso(request.approvedAt)}`]);
   if (request.rejectedBy) fields.push(['ปฏิเสธโดย', `${request.rejectedBy} · ${request.rejectReason}`]);
 
   return h(
@@ -158,21 +175,49 @@ function requestDetail(request: StaffRequest, me: StaffProfile, show: Show, done
     request.type === 'deposit' && request.slipCheck !== 'valid'
       ? h('p', { class: 'warn-text' }, 'ยังไม่ได้ตรวจสลิปอัตโนมัติ ตรวจยอด เวลา และบัญชีผู้รับในสลิปให้ตรงกับคำขอ')
       : null,
-    request.slipFileId
-      ? h(
-          'div',
-          { class: 'row-actions' },
-          h('button', { type: 'button', class: 'small secondary', onClick: () => void openDocument(request.slipFileId, `สลิป ${request.requestNumber}`, show) }, 'ดูสลิป'),
-        )
+    documentButtons(request, show),
+    request.type === 'withdrawal' && (canReview || isApprover)
+      ? h('p', { class: 'warn-text' }, 'ตรวจยอดคงเหลือในระบบหลักก่อน ระบบนี้ไม่รู้ยอดคงเหลือ')
       : null,
     canReview
       ? h(
           'div',
           { class: 'row-actions', style: 'margin-top: 10px' },
-          h('button', { type: 'button', class: 'small', onClick: () => void review('approve') }, 'ผ่านการตรวจ'),
+          h('button', { type: 'button', class: 'small', onClick: () => void decide('reviewRequest', 'approve') }, 'ผ่านการตรวจ'),
           reason,
-          h('button', { type: 'button', class: 'small secondary danger', onClick: () => void review('reject') }, 'ปฏิเสธ'),
+          h('button', { type: 'button', class: 'small secondary danger', onClick: () => void decide('reviewRequest', 'reject') }, 'ปฏิเสธ'),
         )
       : null,
+    isApprover && reviewedByMe
+      ? h('p', { class: 'hint' }, 'คุณเป็นผู้ตรวจคำขอนี้ ต้องให้ผู้อนุมัติคนอื่นอนุมัติ')
+      : null,
+    isApprover && !reviewedByMe
+      ? h(
+          'div',
+          { class: 'row-actions', style: 'margin-top: 10px' },
+          h('button', { type: 'button', class: 'small', onClick: () => void decide('approveRequest', 'approve') }, 'อนุมัติ'),
+          reason,
+          h('button', { type: 'button', class: 'small secondary danger', onClick: () => void decide('approveRequest', 'reject') }, 'ปฏิเสธ'),
+        )
+      : null,
+  );
+}
+
+function documentButtons(request: StaffRequest, show: Show): HTMLElement | null {
+  const buttons: [string, string][] = [];
+  if (request.slipFileId) buttons.push(['ดูสลิป', request.slipFileId]);
+  if (request.signatureFileId) buttons.push(['ดูลายมือชื่อ', request.signatureFileId]);
+  if (request.payoutAccount) {
+    for (const kind of Object.keys(PAYOUT_DOCUMENT_LABELS) as PayoutDocumentKind[]) {
+      buttons.push([PAYOUT_DOCUMENT_LABELS[kind], request.payoutAccount.documents[kind]]);
+    }
+  }
+  if (buttons.length === 0) return null;
+  return h(
+    'div',
+    { class: 'row-actions' },
+    ...buttons.map(([label, fileId]) =>
+      h('button', { type: 'button', class: 'small secondary', onClick: () => void openDocument(fileId, `${label} ${request.requestNumber}`, show) }, label),
+    ),
   );
 }
