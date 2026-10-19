@@ -1,8 +1,0 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    { "name": "dev-api", "runtimeExecutable": "node", "runtimeArgs": ["backend/dev/run.mjs"], "port": 8787 },
-    { "name": "member", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:member"], "port": 5173 },
-    { "name": "staff", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:staff"], "port": 5174 }
-  ]
-}

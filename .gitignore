@@ -8,3 +8,8 @@ backend/.clasp.test.json
 backend/.clasp.prod.json
 .clasprc.json
 .wrangler/
+
+# ไฟล์ของเครื่องมือ AI และโน้ตงาน ไม่ใช่ส่วนของ project
+.agents/
+.claude/
+.scratch/
